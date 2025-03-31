@@ -1,0 +1,44 @@
+---
+- name: Install RPM Fusion repositories
+  ansible.builtin.dnf:
+    name:
+      - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+      - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+  when: base_system_enable_rpm_fusion | bool
+
+- name: Configure DNF for faster downloads
+  ansible.builtin.ini_file:
+    path: /etc/dnf/dnf.conf
+    section: main
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    state: present
+  loop:
+    - { option: 'fastestmirror', value: 'true' }
+    - { option: 'max_parallel_downloads', value: '10' }
+    - { option: 'deltarpm', value: 'true' }
+
+- name: Install required packages
+  ansible.builtin.dnf:
+    name: "{{ base_system_packages }}"
+    state: present
+    update_cache: true
+
+- name: Install COPR tools
+  ansible.builtin.dnf:
+    name: 'dnf-plugins-core'
+    state: present
+
+- name: Enable keyd COPR repository
+  ansible.builtin.command:
+    cmd: dnf copr enable -y alternateved/keyd
+  register: copr_result
+  changed_when: "'already enabled' not in copr_result.stdout"
+  when: base_system_enable_keyd_copr | bool
+
+- name: Install keyd package
+  ansible.builtin.dnf:
+    name: keyd
+    state: present
+  when: base_system_enable_keyd_copr | bool

@@ -1,0 +1,45 @@
+---
+- name: Configure kernel parameters
+  ansible.builtin.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-custom.conf
+    reload: true
+  loop: "{{ base_system_sysctl_settings | dict2items }}"
+
+- name: Configure system limits
+  ansible.builtin.template:
+    src: limits.conf.j2
+    dest: /etc/security/limits.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure systemd coredump settings
+  ansible.builtin.copy:
+    dest: /etc/systemd/coredump.conf
+    content: |
+      [Coredump]
+      Storage=external
+      Compress=yes
+      ProcessSizeMax=24G
+      ExternalSizeMax=24G
+      MaxUse=75G
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Add audit to GRUB command line
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX="((?!audit=).*)(?=")'
+    line: 'GRUB_CMDLINE_LINUX="\1 audit=1'
+    backrefs: true
+  register: grub_config
+
+- name: Update GRUB configuration
+  ansible.builtin.command:
+    cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+  when: grub_config.changed
+  changed_when: true

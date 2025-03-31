@@ -1,0 +1,13 @@
+# Chrony configuration managed by Ansible
+{% for server in base_system_chrony_servers %}
+server {{ server }}
+{% endfor %}
+
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+ntsdumpdir /var/lib/chrony
+leapsectz right/UTC
+port 0
+logdir /var/log/chrony
+log measurements statistics tracking
