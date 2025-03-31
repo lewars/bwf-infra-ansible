@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env
+.env
+.env-*
+dist/
+build/
+*.egg-info/
+.coverage
+.pytest_cache/
+
+# Emacs
+*~
+#*
+\#*
+.*.un~
+*.elc
+.dir-locals.elc
+
+# OS generated files #
+.DS_Store
+Thumbs.db
+
+# Logs and databases #
+*.log
+*.sql
+*.sqlite
+
+# Temporary files #
+*.tmp
+*.swp
+*.bak
+
+# IDEs #
+.idea/
+*.iml
+.vscode/
+
+# Ruff cache
+.ruff_cache/
+
+# poetry related
+poetry.lock
+
+# uv related
+.python-version

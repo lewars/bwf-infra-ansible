@@ -1,0 +1,34 @@
+---
+- name: Print all base-system variables
+  ansible.builtin.debug:
+    msg:
+      - "RPM Fusion: {{ base_system_enable_rpm_fusion }}"
+      - "KEYD COPR: {{ base_system_enable_keyd_copr }}"
+      - "Packages: {{ base_system_packages }}"
+      - "Hostname: {{ base_system_hostname }}.{{ base_system_domain }}"
+      - "SELinux mode: {{ base_system_selinux_mode }}"
+      - "Default user: {{ base_system_default_user }}"
+      - "Disabled filesystems: {{ base_system_disable_filesystems }}"
+  tags:
+    - debug
+
+- name: Include package management tasks
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Include time synchronization tasks
+  ansible.builtin.import_tasks: time.yml
+
+- name: Include hostname configuration tasks
+  ansible.builtin.import_tasks: hostname.yml
+
+- name: Include system tuning tasks
+  ansible.builtin.import_tasks: system_tuning.yml
+
+- name: Include user configuration tasks
+  ansible.builtin.import_tasks: user.yml
+
+- name: Include filesystem configuration tasks
+  ansible.builtin.import_tasks: filesystem.yml
+
+- name: Include network configuration tasks
+  ansible.builtin.import_tasks: network.yml

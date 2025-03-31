@@ -1,0 +1,41 @@
+---
+base_system_enable_rpm_fusion: true
+base_system_enable_keyd_copr: true
+
+base_system_packages:
+  - dnf-utils
+  - htop
+  - unzip
+  - zip
+  - rsync
+  - net-tools
+  - bind-utils
+  - traceroute
+  - plocate
+  - tmux
+
+base_system_hostname: "{{ lookup('env', 'HOSTNAME_PREFIX') }}"
+base_system_domain: "{{ lookup('env', 'DOMAIN')}}"
+
+base_system_chrony_servers:
+  - "192.168.10.1 iburst"
+  - "0.fedora.pool.ntp.org iburst"
+  - "1.fedora.pool.ntp.org iburst"
+  - "2.fedora.pool.ntp.org iburst"
+  - "3.fedora.pool.ntp.org iburst"
+
+base_system_selinux_mode: "enforcing"
+
+base_system_default_user: "{{ lookup('env', 'DEFAULT_USER') }}"
+base_system_default_user_groups:
+  - wheel
+  - "{{ lookup('env', 'ADDITIONAL_GROUP') }}"
+
+base_system_disable_filesystems:
+  - cramfs
+  - udf
+
+base_system_sysctl_settings:
+  net.ipv4.conf.all.log_martians: 1
+  net.ipv4.conf.default.log_martians: 1
+

@@ -1,0 +1,133 @@
+---
+version: '3'
+
+vars:
+  PYTHON: python3
+  VENV_PATH: .venv
+  ENV: '{{.ENV | default "dev"}}'
+
+dotenv: ['.env-{{.ENV}}', '.env']
+
+tasks:
+  install-pip:
+    desc: Install python3-pip RPM package if not present
+    aliases: [pip]
+    cmds:
+      - command -v pip3 || sudo dnf install -y python3-pip
+
+  create-venv:
+    desc: Create a virtual environment called .venv
+    aliases: [venv]
+    deps: [install-pip]
+    status:
+      - test -d {{.VENV_PATH}}
+    cmds:
+      - "{{.PYTHON}} -m venv {{.VENV_PATH}}"
+
+  install-deps:
+    desc: Activate venv, upgrade pip, and install dependencies
+    aliases: [deps]
+    deps: [create-venv]
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate &&
+        pip install --upgrade pip &&
+        test -f requirements.txt &&
+        pip install -r requirements.txt
+
+  lint:
+    desc: Lint all Ansible code
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate && ansible-lint playbooks/ roles/
+
+  lint:base-system:
+    desc: Lint only the base-system role
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate && ansible-lint roles/base-system
+
+  validate:
+    desc: Validate Ansible playbooks
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml --syntax-check
+
+  test:base-system:destroy:
+    desc: Destroy base-system molecule test instances
+    cmds:
+      - |
+        . {{.VENV_PATH}}/bin/activate &&
+        cd roles/base-system &&
+        molecule destroy
+
+  test:base-system:
+    desc: Run molecule tests for base-system role
+    deps: [test:base-system:destroy]
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate && cd roles/base-system && molecule test
+
+  test:base-system:verify:
+    desc: Run molecule tests for base-system up to verify stage
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate && \
+        cd roles/base-system && \
+        molecule create && \
+        molecule converge && \
+        molecule verify
+
+  test:all:destroy:
+    desc: Destroy all molecule test instances for all roles
+    cmds:
+      - |
+        . {{.VENV_PATH}}/bin/activate
+        for role in roles/*/; do
+          if [ -d "${role}molecule" ]; then
+            cd $role
+            molecule destroy
+            cd -
+          fi
+        done
+
+  test:all:
+    desc: Test all roles using molecule
+    deps: [test:all:destroy]
+    cmds:
+      - |
+        . {{.VENV_PATH}}/bin/activate
+        errors=0
+        for role in roles/*/; do
+          if [ -d "${role}molecule" ]; then
+            cd $role
+            molecule test || errors=$((errors+1))
+            cd -
+          fi
+        done
+        test $errors -eq 0
+
+  deploy-workstation:
+    desc: Deploy the Ansible configuration to the workstation
+    deps: [install-deps, validate]
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml
+
+  deploy-server:
+    desc: Deploy the Ansible configuration to server
+    deps: [install-deps, validate]
+    cmds:
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/server.yml
+
+  clean:
+    desc: Clean up generated files and environments
+    cmds:
+      - |
+        if [ -d "{{.VENV_PATH}}" ]; then
+          . {{.VENV_PATH}}/bin/activate
+          for role in roles/*/; do
+            if [ -d "${role}molecule" ]; then
+              cd $role
+              molecule destroy
+              cd -
+            fi
+          done
+        fi
+        rm -rf {{.VENV_PATH}}
+        find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+        find . -name "*.pyc" -delete
+        find . -name ".molecule" -type d -exec rm -rf {} + 2>/dev/null || true
