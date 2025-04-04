@@ -1,0 +1,145 @@
+---
+- name: Create VM instances for molecule tests
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ssh_user: molecule
+    ssh_port: 22
+    ssh_key_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
+    base_image_download: true
+    base_image_local_path: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/Fedora-Cloud-Base-41.x86_64.qcow2"
+    base_image_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-Base-41-1.5.x86_64.qcow2"
+    image_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}.qcow2"
+    cloud_init_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}-cloud-init.iso"
+    qemu_pid_file: "{{ lookup('env', 'XDG_RUNTIME_DIR') }}/{{ molecule_yml.platforms[0].instance_name }}.pid"
+    molecule_instance_config: "{{ lookup('env', 'MOLECULE_INSTANCE_CONFIG') }}"
+
+  tasks:
+    - name: Create base images directory
+      ansible.builtin.file:
+        path: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images"
+        state: directory
+        mode: "0755"
+      when: base_image_download
+
+    - name: Download base image
+      ansible.builtin.get_url:
+        url: "{{ base_image_url }}"
+        dest: "{{ base_image_local_path }}"
+        mode: "0644"
+      when: base_image_download
+
+    - name: Create working directories for molecule
+      ansible.builtin.file:
+        path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+        state: directory
+        mode: "0755"
+
+    - name: Check for existing molecule instance disk
+      ansible.builtin.stat:
+        path: "{{ image_path }}"
+      register: instance_disk
+
+    - name: Create instance disk from base image
+      ansible.builtin.command: >
+        qemu-img create -f qcow2 -F qcow2
+        -b {{ base_image_local_path }}
+        {{ image_path }} 20G
+      when: not instance_disk.stat.exists
+
+    - name: Generate SSH key if it doesn't exist
+      community.crypto.openssh_keypair:
+        path: "{{ ssh_key_path }}"
+        type: rsa
+        size: 4096
+      register: ssh_key
+
+    - name: Create temporary directory for cloud-init files
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: "molecule-{{ molecule_yml.platforms[0].instance_name }}-"
+      register: temp_dir
+      delegate_to: localhost
+
+    - name: Prepare cloud-init user-data file
+      ansible.builtin.copy:
+        dest: "{{ temp_dir.path }}/user-data"
+        content: |
+          #cloud-config
+          hostname: bwf-test-host
+          users:
+            - name: {{ ssh_user }}
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              groups: sudo
+              shell: /bin/bash
+              ssh_authorized_keys:
+                - {{ lookup('file', ssh_key_path + '.pub') }}
+
+    - name: Generate cloud-init ISO
+      ansible.builtin.command: >
+        cloud-localds {{ cloud_init_path }}
+        {{ temp_dir.path }}/user-data
+
+    - name: Start the VM instance using qemu-system-x86_64
+      ansible.builtin.shell: >
+        qemu-system-x86_64
+        -name {{ molecule_yml.platforms[0].instance_name }}
+        -machine type=q35,accel=kvm:tcg
+        -cpu host
+        -smp {{ molecule_yml.platforms[0].cpus | default(4) }}
+        -m {{ molecule_yml.platforms[0].memory | default(4096) }}
+        -drive file={{ image_path }},format=qcow2
+        -drive file={{ cloud_init_path }},format=raw
+        -netdev user,id=net0,hostfwd=tcp::2222-:22
+        -device virtio-net-pci,netdev=net0
+        -display none
+        -daemonize
+        -pidfile {{ qemu_pid_file }}
+      register: qemu_start_result
+
+    - name: Get VM pid
+      ansible.builtin.command: "cat {{ qemu_pid_file }}"
+      register: vm_pid
+      changed_when: false
+
+    - name: Wait 5 seconds for VM to initialize
+      ansible.builtin.pause:
+        seconds: 5
+
+    - name: Set VM SSH port fact
+      ansible.builtin.set_fact:
+        vm_ssh_port: 2222
+
+    - name: Add VM IP to inventory
+      ansible.builtin.add_host:
+        name: "{{ molecule_yml.platforms[0].name }}"
+        ansible_host: "127.0.0.1"
+        ansible_port: "{{ vm_ssh_port }}"
+        ansible_user: "{{ ssh_user }}"
+        ansible_private_key_file: "{{ ssh_key_path }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        groups: all
+
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ vm_ssh_port }}"
+        delay: 5
+        timeout: 300
+      register: ssh_ready
+
+    - name: Dump instance config
+      ansible.builtin.copy:
+        content: |
+          ---
+          # Molecule managed
+          - instance: "{{ molecule_yml.platforms[0].instance_name }}"
+            address: "127.0.0.1"
+            user: "{{ ssh_user }}"
+            port: "{{ vm_ssh_port }}"
+            shell_type: sh
+            identity_file: "{{ ssh_key_path }}"
+            pid_file: "{{ qemu_pid_file }}"
+        dest: "{{ molecule_instance_config }}"
+        mode: 0600
