@@ -9,7 +9,7 @@
     ssh_key_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
     base_image_download: true
     base_image_local_path: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/Fedora-Cloud-Base-41.x86_64.qcow2"
-    base_image_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-Base-41-1.5.x86_64.qcow2"
+    base_image_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2"
     image_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}.qcow2"
     cloud_init_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}-cloud-init.iso"
     qemu_pid_file: "{{ lookup('env', 'XDG_RUNTIME_DIR') }}/{{ molecule_yml.platforms[0].instance_name }}.pid"
