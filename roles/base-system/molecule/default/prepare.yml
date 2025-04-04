@@ -5,6 +5,11 @@
   gather_facts: true
 
   tasks:
+    - name: Ensure python3-libdnf5 is installed
+      ansible.builtin.package:
+        name: python3-libdnf5
+        state: present
+
     - name: Ensure Python is available for Ansible
       ansible.builtin.package:
         name: python3
