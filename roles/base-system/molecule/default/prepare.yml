@@ -1,0 +1,16 @@
+---
+- name: Prepare the VM for testing
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Ensure Python is available for Ansible
+      ansible.builtin.package:
+        name: python3
+        state: present
+
+    - name: Update package cache
+      ansible.builtin.dnf:
+        update_cache: true
+      changed_when: false

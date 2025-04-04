@@ -1,0 +1,10 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Run Testinfra
+      ansible.builtin.command: python -m pytest -v
+      changed_when: false
+      delegate_to: localhost
