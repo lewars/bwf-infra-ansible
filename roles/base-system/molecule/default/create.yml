@@ -8,8 +8,9 @@
     ssh_port: 22
     ssh_key_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
     base_image_download: true
-    base_image_local_path: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/Fedora-Cloud-Base-41.x86_64.qcow2"
-    base_image_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2"
+    base_image_name: "Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2"
+    base_image_local_path: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/{{ base_image_name }}"
+    base_image_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/{{ base_image_name }}"
     image_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}.qcow2"
     cloud_init_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}-cloud-init.iso"
     qemu_pid_file: "{{ lookup('env', 'XDG_RUNTIME_DIR') }}/{{ molecule_yml.platforms[0].instance_name }}.pid"
@@ -29,6 +30,40 @@
         dest: "{{ base_image_local_path }}"
         mode: "0644"
       when: base_image_download
+
+    - name: Download Fedora checksum file
+      ansible.builtin.get_url:
+        url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-41-1.4-x86_64-CHECKSUM"
+        dest: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/Fedora-Cloud-41-1.4-x86_64-CHECKSUM"
+        mode: "0644"
+      when: base_image_download
+      register: checksum_download
+
+    - name: Download Fedora GPG key
+      ansible.builtin.get_url:
+        url: "https://fedoraproject.org/fedora.gpg"
+        dest: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/fedora.gpg"
+        mode: "0644"
+      when: base_image_download
+      register: gpg_download
+
+    - name: Verify checksum file signature
+      ansible.builtin.command:
+        cmd: gpgv --keyring ./fedora.gpg Fedora-Cloud-41-1.4-x86_64-CHECKSUM
+        chdir: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images"
+      when: base_image_download and checksum_download.changed
+      register: gpg_verify
+      changed_when: false
+      failed_when: gpg_verify.rc != 0
+
+    - name: Verify image with checksum
+      ansible.builtin.command:
+        cmd: sha256sum --ignore-missing -c Fedora-Cloud-41-1.4-x86_64-CHECKSUM
+        chdir: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images"
+      when: base_image_download and checksum_download.changed
+      register: checksum_verify
+      changed_when: false
+      failed_when: checksum_verify.rc != 0
 
     - name: Create working directories for molecule
       ansible.builtin.file:
