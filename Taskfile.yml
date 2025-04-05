@@ -59,7 +59,6 @@ tasks:
 
   test:base-system:
     desc: Run molecule tests for base-system role
-    deps: [test:base-system:destroy]
     cmds:
       - . {{.VENV_PATH}}/bin/activate && cd roles/base-system && molecule test
 
