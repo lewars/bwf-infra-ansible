@@ -5,6 +5,15 @@
   become: true
 
   tasks:
+    - name: Set molecule project directory
+      set_fact:
+        role_dir: "{{ lookup('env', 'ANSIBLE_ROLES_PATH') }}"
+
+    - name: Show debug info
+      debug:
+        msg:
+          - "Using role path: {{ role_dir }}"
+
     - name: Include base-system role
       ansible.builtin.include_role:
         name: base-system

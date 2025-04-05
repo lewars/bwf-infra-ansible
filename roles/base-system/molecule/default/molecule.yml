@@ -1,4 +1,5 @@
 ---
+role_name_check: 1
 dependency:
   name: galaxy
   enabled: false
@@ -24,6 +25,8 @@ provisioner:
   config_options:
     defaults:
       remote_tmp: /tmp/.ansible-${USER}/tmp
+  env:
+    ANSIBLE_ROLES_PATH: ../../../
   inventory:
     host_vars:
       test-vm:

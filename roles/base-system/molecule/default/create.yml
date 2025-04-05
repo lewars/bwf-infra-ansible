@@ -24,12 +24,17 @@
         mode: "0755"
       when: base_image_download
 
+    - name: Check if Download base image is present
+      stat:
+        path: "{{ base_image_local_path }}"
+      register: base_image_file
+
     - name: Download base image
-      ansible.builtin.get_url:
+      get_url:
         url: "{{ base_image_url }}"
         dest: "{{ base_image_local_path }}"
         mode: "0644"
-      when: base_image_download
+      when: not base_image_file.stat.exists
 
     - name: Download Fedora checksum file
       ansible.builtin.get_url:

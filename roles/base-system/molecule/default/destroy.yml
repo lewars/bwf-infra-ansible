@@ -1,0 +1,125 @@
+---
+- name: Destroy VM instances for molecule tests
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    instance_name: "{{ molecule_yml.platforms[0].instance_name }}"
+    qemu_pid_file: "{{ lookup('env', 'XDG_RUNTIME_DIR') }}/{{ instance_name }}.pid"
+    qemu_monitor_socket: "{{ lookup('env', 'XDG_RUNTIME_DIR') }}/{{ instance_name }}-monitor.sock"
+    image_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ instance_name }}.qcow2"
+    cloud_init_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ instance_name }}-cloud-init.iso"
+    molecule_instance_config: "{{ lookup('env', 'MOLECULE_INSTANCE_CONFIG') }}"
+    ssh_key_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
+    temp_dir_pattern: "molecule-{{ instance_name }}-*"
+
+  tasks:
+    - name: Check if VM PID file exists
+      ansible.builtin.stat:
+        path: "{{ qemu_pid_file }}"
+      register: vm_pid_file
+
+    # First attempt a graceful shutdown through QEMU monitor interface
+    - name: Attempt graceful shutdown via QEMU monitor socket
+      ansible.builtin.command:
+        cmd: "echo 'system_powerdown' | nc -U {{ qemu_monitor_socket }}"
+      register: qemu_shutdown_result
+      changed_when: qemu_shutdown_result.rc == 0
+      failed_when: false
+      when: vm_pid_file.stat.exists
+
+    - name: Wait for VM to shutdown gracefully
+      ansible.builtin.pause:
+        seconds: 5
+      when: vm_pid_file.stat.exists and qemu_shutdown_result.rc == 0
+
+    # Check if VM is still running after graceful shutdown attempt
+    - name: Check if VM is still running
+      ansible.builtin.stat:
+        path: "{{ qemu_pid_file }}"
+      register: vm_still_running
+      when: vm_pid_file.stat.exists
+
+    # If VM is still running, force quit
+    - name: Force quit VM if still running
+      ansible.builtin.command:
+        cmd: "kill $(cat {{ qemu_pid_file }})"
+      register: qemu_quit_result
+      changed_when: qemu_quit_result.rc == 0
+      failed_when: false
+      when:
+        - vm_still_running is defined
+        - vm_still_running.stat.exists | default(false)
+
+    # If QEMU monitor commands fail, find and terminate processes as a fallback
+    - name: Find QEMU processes by instance name
+      ansible.builtin.command:
+        cmd: "pgrep -f 'qemu.*{{ instance_name }}'"
+      register: qemu_processes
+      changed_when: false
+      failed_when: false
+      when: >
+        (qemu_shutdown_result is defined and (qemu_shutdown_result.rc | default(1)) != 0) or
+        (qemu_quit_result is defined and (qemu_quit_result.rc | default(1)) != 0)
+
+    - name: Terminate QEMU processes if monitor commands failed
+      ansible.builtin.command:
+        cmd: "kill {{ item }}"
+      with_items: "{{ qemu_processes.stdout_lines | default([]) }}"
+      when: qemu_processes.rc == 0 and qemu_processes.stdout_lines | default([]) | length > 0
+      changed_when: true
+      ignore_errors: true
+
+    - name: Wait for processes to terminate
+      ansible.builtin.pause:
+        seconds: 2
+      when: >
+       (qemu_shutdown_result is defined and (qemu_shutdown_result.rc | default(0)) == 0) or
+       (qemu_quit_result is defined and (qemu_quit_result.rc | default(0)) == 0) or
+       (qemu_processes is defined and qemu_processes.rc == 0 and (qemu_processes.stdout_lines | default([]) | length > 0))
+
+    - name: Find temporary directories created for cloud-init
+      ansible.builtin.find:
+        paths: "/tmp"
+        patterns: "{{ temp_dir_pattern }}"
+        file_type: directory
+      register: tmp_dirs
+
+    - name: Remove SSH host keys from known_hosts
+      ansible.builtin.known_hosts:
+        name: "127.0.0.1"
+        state: absent
+      ignore_errors: true
+
+    - name: Clean up all VM resources and artifacts
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ qemu_pid_file }}"
+        - "{{ image_path }}"
+        - "{{ cloud_init_path }}"
+        - "{{ molecule_instance_config }}"
+        - "{{ ssh_key_path }}"
+        - "{{ ssh_key_path }}.pub"
+      loop_control:
+        label: "{{ item | basename }}"
+      ignore_errors: true
+
+    - name: Clean up temporary directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ tmp_dirs.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      ignore_errors: true
+      when: false
+
+    # Ensure instance config is empty
+    - name: Ensure instance config is empty
+      ansible.builtin.copy:
+        content: "# Molecule managed\n---\n"
+        dest: "{{ molecule_instance_config }}"
+        mode: 0600
+      when: molecule_instance_config is defined and molecule_instance_config != ""
