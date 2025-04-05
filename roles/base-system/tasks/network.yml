@@ -4,34 +4,29 @@
     name: systemd-resolved
     state: present
 
-- name: Configure systemd-resolved
+- name: Create systemd resolved.conf.d
+  ansible.builtin.file:
+    name: /etc/systemd/resolved.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: 755
+
+- name: Configure DNS options
   ansible.builtin.copy:
-    dest: /etc/systemd/resolved.conf.d/custom.conf
+    dest: /etc/systemd/resolved.conf.d/dns.conf
     content: |
       [Resolve]
       DNSSEC=allow-downgrade
       DNSOverTLS=opportunistic
       MulticastDNS=yes
-      LLMNR=yes
       Cache=yes
+      LLMNR=no
       DNSStubListener=yes
       ReadEtcHosts=yes
     owner: root
     group: root
     mode: '0644'
-    create: true
-  register: resolved_config
-
-- name: Configure DNS options
-  ansible.builtin.copy:
-    dest: /etc/systemd/resolved.conf.d/dns_options.conf
-    content: |
-      [Resolve]
-      DNSStubResolverOptions=edns0 trust-ad
-    owner: root
-    group: root
-    mode: '0644'
-    create: true
   register: dns_options
 
 - name: Enable and start systemd-resolved service
@@ -39,4 +34,4 @@
     name: systemd-resolved
     state: restarted
     enabled: true
-  when: resolved_config.changed or dns_options.changed
+  when: dns_options.changed
