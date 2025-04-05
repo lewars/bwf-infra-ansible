@@ -3,10 +3,3 @@
   ansible.builtin.hostname:
     name: "{{ base_system_hostname }}.{{ base_system_domain }}"
   register: hostname_result
-
-- name: Ensure hostname is in /etc/hosts
-  ansible.builtin.lineinfile:
-    path: /etc/hosts
-    regexp: "^127.0.1.1"
-    line: "127.0.1.1   {{ base_system_hostname }}.{{ base_system_domain }} {{ base_system_hostname }}"
-    state: present

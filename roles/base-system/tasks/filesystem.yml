@@ -26,11 +26,15 @@
     opts: defaults,nodev,nosuid,noexec
     state: mounted
 
-- name: Configure mount options for /home
+- name: Configure mount options for /home (Btrfs Subvolume)
   ansible.builtin.mount:
     path: /home
-    src: "{{ ansible_mounts | selectattr('mount', 'equalto', '/home') | map(attribute='device') | first | default(omit) }}"
-    fstype: "{{ ansible_mounts | selectattr('mount', 'equalto', '/home') | map(attribute='fstype') | first | default(omit) }}"
-    opts: defaults,nodev,nosuid
+    src: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='device') | first | default(omit) }}"
+    fstype: btrfs
+    opts: "defaults,nodev,nosuid,subvol={{ btrfs_home_subvolume_name }}"
     state: mounted
-  when: ansible_mounts | selectattr('mount', 'equalto', '/home') | list | count > 0
+  when:
+    - ansible_mounts | selectattr('mount', 'equalto', '/home') | list | count > 0
+    - "'btrfs' in ansible_mounts | selectattr('mount', 'equalto', '/home') | map(attribute='fstype') | first | default('')"
+  vars:
+    btrfs_home_subvolume_name: home
