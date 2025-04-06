@@ -1,4 +1,10 @@
 ---
+- name: Create default user groups
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ base_system_default_user_groups | default([]) }}"
+
 - name: Create default user
   ansible.builtin.user:
     name: "{{ base_system_default_user }}"

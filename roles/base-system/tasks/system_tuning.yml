@@ -8,16 +8,6 @@
     reload: true
   loop: "{{ base_system_sysctl_settings | dict2items }}"
 
-- name: Configure system limits
-  ansible.builtin.file:
-    src: limits.conf
-    dest: /etc/security/limits/11-pam-limits.conf
-    owner: root
-    group: root
-    state: file
-    mode: '0644'
-  when: false
-
 - name: Configure systemd coredump settings
   ansible.builtin.copy:
     dest: /etc/systemd/coredump.conf
@@ -35,8 +25,8 @@
 - name: Add audit to GRUB command line
   ansible.builtin.lineinfile:
     path: /etc/default/grub
-    regexp: '^GRUB_CMDLINE_LINUX="((?!audit=).*)(?=")'
-    line: 'GRUB_CMDLINE_LINUX="\1 audit=1'
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT="((?!audit=).*)(?=")'
+    line: 'GRUB_CMDLINE_LINUX="\1 audit=1"'
     backrefs: true
   register: grub_config
 

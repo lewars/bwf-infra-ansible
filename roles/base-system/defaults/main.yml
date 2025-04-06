@@ -29,7 +29,7 @@ base_system_selinux_mode: "enforcing"
 base_system_default_user: "{{ lookup('env', 'DEFAULT_USER') }}"
 base_system_default_user_groups:
   - wheel
-  - "{{ lookup('env', 'ADDITIONAL_GROUP') }}"
+  - "{{ lookup('env', 'ADDITIONAL_GROUP') | default('user', true) }}"
 
 base_system_disable_filesystems:
   - cramfs

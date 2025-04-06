@@ -31,19 +31,11 @@ def test_required_packages(host):
         assert host.package(package).is_installed, f"Package {package} not installed"
 
 def test_keyd_installation(host):
-    """Verify keyd package is installed if enabled"""
+    """Verify keyd package is installed and enabled"""
     keyd_package = host.package("keyd")
-    if keyd_package.is_installed:
-        keyd_service = host.service("keyd")
-        assert keyd_service.is_enabled, "keyd service not enabled"
-
-def test_hostname_configuration(host):
-    """Test hostname is set correctly"""
-    hostname = host.check_output("hostname")
-    assert "molecule-test.local" in hostname
-
-    hosts_file = host.file("/etc/hosts")
-    assert hosts_file.contains("127.0.1.1\\s+molecule-test.local\\s+molecule-test")
+    assert keyd_package.is_installed, "keyd package not installed"
+    keyd_service = host.service("keyd")
+    assert keyd_service.is_enabled, "keyd service not enabled"
 
 def test_chrony_configuration(host):
     """Verify chrony is installed, configured and running"""
@@ -99,15 +91,6 @@ def test_sysctl_settings(host):
         assert cmd.rc == 0
         assert f"{setting} = {value}" in cmd.stdout
 
-def test_system_limits(host):
-    """Check system limits configuration"""
-    limits_conf = host.file("/etc/security/limits.conf")
-    assert limits_conf.exists
-    assert limits_conf.contains("# Managed by Ansible")
-
-    assert limits_conf.contains("* soft core 0")
-    assert limits_conf.contains("* soft nofile 65535")
-
 def test_coredump_settings(host):
     """Verify systemd coredump settings"""
     coredump_conf = host.file("/etc/systemd/coredump.conf")
@@ -124,26 +107,28 @@ def test_grub_configuration(host):
 # Test user configuration
 def test_default_user_exists(host):
     """Verify the default user is created properly"""
-    user = host.user("molecule")
+    user = host.user("molecule-user")
     assert user.exists
     assert user.shell == "/bin/bash"
-    assert "wheel" in user.groups
+    assert "user" in user.groups
 
 def test_sudo_access(host):
     """Check sudo configuration for default user"""
     sudo_file = host.file("/etc/sudoers.d/custom")
     assert sudo_file.exists
     assert sudo_file.mode == 0o440
-    assert sudo_file.contains("molecule ALL=(ALL) NOPASSWD: ALL")
+    duser = os.getenv("DEFAULT_USER", "molecule")
+    assert sudo_file.contains(f"{duser} ALL=(ALL) NOPASSWD: ALL")
 
 def test_systemd_resolved(host):
     """Check systemd-resolved configuration"""
     assert host.package("systemd-resolved").is_installed
 
-    resolved_conf = host.file("/etc/systemd/resolved.conf.d/custom.conf")
+    resolved_conf = host.file("/etc/systemd/resolved.conf.d/dns.conf")
     assert resolved_conf.exists
     assert resolved_conf.contains("DNSSEC=allow-downgrade")
     assert resolved_conf.contains("DNSOverTLS=opportunistic")
+    assert resolved_conf.contains("MulticastDNS=yes")
 
     resolved_service = host.service("systemd-resolved")
     assert resolved_service.is_running

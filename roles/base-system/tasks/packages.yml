@@ -12,6 +12,7 @@
   community.general.ini_file:
     path: /etc/dnf/dnf.conf
     section: main
+    no_extra_spaces: true
     option: "{{ item.option }}"
     value: "{{ item.value }}"
     state: present
@@ -35,11 +36,19 @@
   ansible.builtin.command:
     cmd: dnf copr enable -y alternateved/keyd
   register: copr_result
-  changed_when: "'already enabled' not in copr_result.stdout"
+  changed_when: false
   when: base_system_enable_keyd_copr | bool
 
 - name: Install keyd package
   ansible.builtin.dnf:
     name: keyd
     state: present
+  when: base_system_enable_keyd_copr | bool
+
+  # Enable keyd service
+- name: Enabled keyd service
+  ansible.builtin.systemd:
+    name: keyd
+    enabled: true
+    state: started
   when: base_system_enable_keyd_copr | bool

@@ -3,6 +3,14 @@
   hosts: all
   gather_facts: false
   tasks:
+    - name: Print MOLECULE_EPHEMERAL_DIRECTORY before tests execute
+      ansible.builtin.debug:
+        msg:
+          - "===== MOLECULE TEST ENVIRONMENT ====="
+          - "MOLECULE_EPHEMERAL_DIRECTORY: {{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+          - "====================================="
+      delegate_to: localhost
+
     - name: Notify that we are using testinfra to test
       ansible.builtin.debug:
         msg: "Verification handled by testinfra configured in molecule.yml"

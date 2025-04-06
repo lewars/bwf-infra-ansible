@@ -27,6 +27,9 @@ provisioner:
       remote_tmp: /tmp/.ansible-${USER}/tmp
   env:
     ANSIBLE_ROLES_PATH: ../../../
+    DEFAULT_USER: molecule-user
+    HOSTNAME_PREFIX: molecule-test
+    DOMAIN: lan
   inventory:
     host_vars:
       test-vm:
@@ -41,8 +44,8 @@ verifier:
   options:
     v: true
     s: true
-    connection: ansible
-    ansible-inventory: "{{ lookup('env', 'MOLECULE_INVENTORY_FILE') }}"
+  env:
+    PYTHONWARNINGS: "ignore:.*U.*mode is deprecated:DeprecationWarning"
 scenario:
   name: default
   test_sequence:

@@ -10,7 +10,7 @@
     state: directory
     owner: root
     group: root
-    mode: 755
+    mode: '0755'
 
 - name: Configure DNS options
   ansible.builtin.copy:
