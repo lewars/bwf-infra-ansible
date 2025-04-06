@@ -37,12 +37,14 @@ provisioner:
         ansible_become: true
 verifier:
   name: testinfra
-  directory: ../tests
-  options:
-    v: true
-    s: true
-    connection: ansible
-    ansible-inventory: "{{ lookup('env', 'MOLECULE_INVENTORY_FILE') }}"
+  directory: ../tests/
+  env:
+    PYTHONWARNINGS: ignore::UserWarning
+  # options:
+  #   v: true
+  #   s: true
+  #   connection: ansible
+  #   ansible-inventory: "{{ lookup('env', 'MOLECULE_INVENTORY_FILE') }}"
 scenario:
   name: default
   test_sequence:
