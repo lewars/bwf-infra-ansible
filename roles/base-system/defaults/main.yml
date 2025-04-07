@@ -1,18 +1,20 @@
 ---
 base_system_enable_rpm_fusion: true
 base_system_enable_keyd_copr: true
+base_system_update: true
+base_system_enable_flathub: true
 
 base_system_packages:
   - dnf-utils
+  - emacs
   - htop
-  - unzip
-  - zip
   - rsync
   - net-tools
   - bind-utils
   - traceroute
   - plocate
   - tmux
+  - fwupd
 
 base_system_hostname: "{{ lookup('env', 'HOSTNAME_PREFIX') }}"
 base_system_domain: "{{ lookup('env', 'DOMAIN')}}"

@@ -51,4 +51,19 @@
     name: keyd
     enabled: true
     state: started
+  changed_when: false
   when: base_system_enable_keyd_copr | bool
+
+- name: Install Flathub repository
+  ansible.builtin.command:
+    cmd: flatpak remote-add --if-not-exists --subset=verified_floss flathub-verified https://flathub.org/repo/flathub.flatpakrepo
+    register: flatpak_result
+    changed_when: false
+  when: base_system_enable_flathub | bool
+
+- name: Update entire system
+  ansible.builtin.dnf:
+    name: '*'
+    state: latest
+    update_cache: true
+  when: base_system_update | bool

@@ -1,6 +1,7 @@
 import pytest
 import os
 
+
 # Test package management functionality
 def test_rpm_fusion_repos(host):
     """Verify RPM Fusion repositories are properly configured"""
@@ -12,6 +13,7 @@ def test_rpm_fusion_repos(host):
     assert free_repo.rc == 0, "RPM Fusion free repository not found"
     assert nonfree_repo.rc == 0, "RPM Fusion nonfree repository not found"
 
+
 def test_dnf_configuration(host):
     """Test DNF is configured with performance settings"""
     dnf_conf = host.file("/etc/dnf/dnf.conf")
@@ -20,15 +22,46 @@ def test_dnf_configuration(host):
     assert dnf_conf.contains("max_parallel_downloads=10")
     assert dnf_conf.contains("deltarpm=true")
 
+
 def test_required_packages(host):
     """Verify all required packages are installed"""
     required_packages = [
-        "dnf-utils", "htop", "unzip", "zip", "rsync",
-        "net-tools", "bind-utils", "traceroute", "plocate", "tmux"
+        "dnf-utils",
+        "htop",
+        "emacs",
+        "htop",
+        "rsync",
+        "net-tools",
+        "bind-utils",
+        "traceroute",
+        "plocate",
+        "tmux",
+        "fwupd",
     ]
 
     for package in required_packages:
         assert host.package(package).is_installed, f"Package {package} not installed"
+
+
+def test_nvidia_packages(host):
+    """Verify NVIDIA packages are installed"""
+    nvidia_packages = [
+        "akmod-nvidia",
+        "xorg-x11-drv-nvidia-cuda",
+        "xorg-x11-drv-nvidia-cuda-libs",
+        "kmodtool",
+        "mokutil",
+        "openssl",
+        "xorg-x11-drv-nvidia-power",
+        "vulkan",
+        "nvidia-vaapi-driver",
+        "libva-utils",
+        "vdpauinfo",
+    ]
+
+    for package in nvidia_packages:
+        assert host.package(package).is_installed, f"Package {package} not installed"
+
 
 def test_keyd_installation(host):
     """Verify keyd package is installed and enabled"""
@@ -36,6 +69,15 @@ def test_keyd_installation(host):
     assert keyd_package.is_installed, "keyd package not installed"
     keyd_service = host.service("keyd")
     assert keyd_service.is_enabled, "keyd service not enabled"
+
+
+# test if flathub is configured
+def test_flathub_repo(host):
+    """Verify Flathub repository is configured"""
+    cmd = host.run("flatpak remote | grep -P '^flathub\b'")
+    assert cmd.rc == 0, "Flathub repository found"
+    assert "verified_floss" in cmd.stdout
+
 
 def test_chrony_configuration(host):
     """Verify chrony is installed, configured and running"""
@@ -54,6 +96,7 @@ def test_chrony_configuration(host):
     assert chrony_service.is_running
     assert chrony_service.is_enabled
 
+
 def test_filesystem_blacklist(host):
     """Check that specified filesystems are blacklisted"""
     blacklist_conf = host.file("/etc/modprobe.d/blacklist.conf")
@@ -61,6 +104,7 @@ def test_filesystem_blacklist(host):
 
     for fs in ["cramfs", "udf"]:
         assert blacklist_conf.contains(f"install {fs} /bin/true")
+
 
 def test_secure_mount_options(host):
     """Verify mount points have secure options"""
@@ -79,17 +123,19 @@ def test_secure_mount_options(host):
         for option in ["nodev", "nosuid"]:
             assert option in home_mount.options, f"{option} not set on /home"
 
+
 def test_sysctl_settings(host):
     """Verify sysctl settings are applied"""
     settings = {
         "net.ipv4.conf.all.log_martians": "1",
-        "net.ipv4.conf.default.log_martians": "1"
+        "net.ipv4.conf.default.log_martians": "1",
     }
 
     for setting, value in settings.items():
         cmd = host.run(f"sysctl {setting}")
         assert cmd.rc == 0
         assert f"{setting} = {value}" in cmd.stdout
+
 
 def test_coredump_settings(host):
     """Verify systemd coredump settings"""
@@ -98,11 +144,13 @@ def test_coredump_settings(host):
     assert coredump_conf.contains("Storage=external")
     assert coredump_conf.contains("Compress=yes")
 
+
 def test_grub_configuration(host):
     """Check GRUB configuration includes audit parameter"""
     grub_conf = host.file("/etc/default/grub")
     assert grub_conf.exists
     assert grub_conf.contains("audit=1")
+
 
 # Test user configuration
 def test_default_user_exists(host):
@@ -110,7 +158,8 @@ def test_default_user_exists(host):
     user = host.user("molecule-user")
     assert user.exists
     assert user.shell == "/bin/bash"
-    assert "user" in user.groups
+    assert "molecule-user" in user.groups
+
 
 def test_sudo_access(host):
     """Check sudo configuration for default user"""
@@ -119,6 +168,7 @@ def test_sudo_access(host):
     assert sudo_file.mode == 0o440
     duser = os.getenv("DEFAULT_USER", "molecule")
     assert sudo_file.contains(f"{duser} ALL=(ALL) NOPASSWD: ALL")
+
 
 def test_systemd_resolved(host):
     """Check systemd-resolved configuration"""

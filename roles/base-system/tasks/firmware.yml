@@ -1,0 +1,13 @@
+---
+- name: Update firmware
+  ansible.builtin.command:
+    cmd: fwupdmgr refresh --force
+  register: fwupdmgr_refresh
+  changed_when: false
+
+- name: Install firmware
+  ansible.builtin.command:
+    cmd: fwupdmgr update -y
+    register: fwupdmgr_update
+    changed_when: false
+  when: base_system_update | bool

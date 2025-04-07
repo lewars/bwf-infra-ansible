@@ -38,6 +38,8 @@ provisioner:
         ansible_user: molecule
         ansible_private_key_file: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
         ansible_become: true
+        base_system_update: false
+        base_system_enable_flathub: true
 verifier:
   name: testinfra
   directory: ../tests
