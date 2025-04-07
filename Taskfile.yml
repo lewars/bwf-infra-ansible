@@ -6,7 +6,7 @@ vars:
   VENV_PATH: .venv
   ENV: '{{.ENV | default "dev"}}'
 
-dotenv: ['.env-{{.ENV}}', '.env']
+dotenv: [ '.env', '.env-{{.ENV}}']
 
 tasks:
   install-pip:
