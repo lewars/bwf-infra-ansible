@@ -1,0 +1,16 @@
+---
+- name: Configure Fedora workstation
+  hosts: workstations
+  become: true
+  gather_facts: true
+
+  vars:
+    is_workstation: true
+
+  pre_tasks:
+    - name: Print workstation information
+      ansible.builtin.debug:
+        msg: "Configuring workstation: {{ inventory_hostname }} ({{ ansible_host }})"
+
+  roles:
+    - role: base-system

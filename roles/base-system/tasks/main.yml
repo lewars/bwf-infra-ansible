@@ -17,13 +17,15 @@
 
 - name: Include desktop tasks
   ansible.builtin.import_tasks: desktop.yml
+  when: is_workstation | default(false)
 
 - name: Include nvidia tasks for workstation
   ansible.builtin.import_tasks: nvidia-workstation.yml
+  when: is_workstation | default(false)
 
 - name: Include nvidia tasks for server
   ansible.builtin.import_tasks: nvidia-server.yml
-  when: false
+  when: is_server | default(false)
 
 - name: Include firmware tasks
   ansible.builtin.import_tasks: firmware.yml

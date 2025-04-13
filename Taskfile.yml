@@ -59,6 +59,7 @@ tasks:
 
   test:base-system:
     desc: Run molecule tests for base-system role
+    deps: [validate]
     cmds:
       - . {{.VENV_PATH}}/bin/activate && cd roles/base-system && molecule test
 
@@ -102,15 +103,15 @@ tasks:
 
   deploy-workstation:
     desc: Deploy the Ansible configuration to the workstation
-    deps: [install-deps, validate]
+    # deps: [install-deps, validate]
     cmds:
-      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml -i inventory/{{.ENV}}/hosts.yml
 
   deploy-server:
     desc: Deploy the Ansible configuration to server
-    deps: [install-deps, validate]
+    # deps: [install-deps, validate]
     cmds:
-      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/server.yml
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/server.yml -i inventory/{{.ENV}}/hosts.yml
 
   clean:
     desc: Clean up generated files and environments
