@@ -40,6 +40,7 @@ provisioner:
         ansible_become: true
         base_system_update: false
         base_system_enable_flathub: true
+        molecule_test: true
 verifier:
   name: testinfra
   directory: ../tests

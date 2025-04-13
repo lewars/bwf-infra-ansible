@@ -1,8 +1,6 @@
 ---
-
-# Install NVIDIA Drivers from RPM Fusion
-- name: Install needed packages
-  ansible.builtin.dnf:
+- name: Install NVIDIA packages
+  ansible.builtin.dnf5:
     name:
       - akmod-nvidia
       - xorg-x11-drv-nvidia-cuda
@@ -11,119 +9,105 @@
       - mokutil
       - openssl
       - xorg-x11-drv-nvidia-power
-      - vulkan
       - nvidia-vaapi-driver
       - libva-utils
       - vdpauinfo
+      - vulkan
     state: present
-    when: base_system_update | bool and base_system_enable_nvidia | bool
+  when: base_system_enable_nvidia | bool
 
-- name: Install NVIDIA Drivers
+- name: Wait for NVIDIA driver installation
+  when: base_system_enable_nvidia | bool
   block:
-    - name: Wait for 3 minutes to allow compilation to start
+    - name: Wait for compilation to start
       ansible.builtin.pause:
-        minutes: 3
-
-    - name: Check for active compilation processes (gcc, make, rpmbuild)
-      ansible.builtin.wait_for:
-        state: absent
-        search_regex: '(gcc|make|rpmbuild)'
-        delay: 10
-        timeout: 300  # Wait up to 5 minutes for no compilation processes
+        seconds: 10
 
     - name: Check for active compilation processes
       ansible.builtin.shell: |
-        pgrep -xq "{{ process_names_regex }}" && exit 1 || exit 0
+        pgrep -i "{{ process_names_regex }}" && exit 1 || exit 0
       register: compilation_check
       until: compilation_check.rc == 0
-      retries: "{{ retries }}"
+      retries: "{{ nretries }}"
       delay: "{{ check_interval }}"
       changed_when: false
       failed_when: compilation_check.rc != 0
+      ignore_errors: true
       vars:
-        check_interval: 5
-        wait_timeout: 300  # 5 minutes in seconds
-        retries: "{{ wait_timeout // check_interval }}"
-        process_names_regex: '^(gcc|make|rpmbuild)$'
+        check_interval: 10
+        wait_timeout: 300
+        nretries: "{{ wait_timeout // check_interval }}"
+        process_names_regex: '(gcc|make|rpmbuild)'
 
     - name: Initiate reboot after NVIDIA module is present
       ansible.builtin.reboot:
         reboot_timeout: 300
         msg: "Rebooting system after NVIDIA driver installation"
+      when: molecule_test != true
 
     - name: Wait for the system to become reachable again
       ansible.builtin.wait_for_connection:
         timeout: 300
+      when: molecule_test != true
 
     - name: Verify NVIDIA driver is loaded after reboot
       ansible.builtin.command:
         cmd: lsmod | grep nvidia
       register: nvidia_module_check
       changed_when: false
+      when: molecule_test != true
 
     - name: Display NVIDIA module status after reboot
       ansible.builtin.debug:
         var: nvidia_module_check.stdout_lines
-      when: nvidia_module_check.stdout_lines
+      when: molecule_test != true and nvidia_module_check.stdout_lines
 
     - name: Display NVIDIA installation completion message
       ansible.builtin.debug:
         msg: "NVIDIA driver installation and reboot complete."
-  when: base_system_enable_nvidia | bool
 
-# Enable nvidia-{suspend,resume,hibernate}
 - name: Enable nvidia-{suspend,resume,hibernate}
   ansible.builtin.systemd:
-    name: {{ item }}
+    name: "{{ item }}"
     enabled: true
     state: started
   loop:
     - nvidia-suspend.service
     - nvidia-resume.service
     - nvidia-hibernate.service
+  changed_when: false
   when: base_system_enable_nvidia | bool
 
-# Enable nvidia-persistenced
 - name: Enable nvidia-persistenced
   ansible.builtin.systemd:
     name: nvidia-persistenced
     enabled: true
     state: started
-  when: base_system_enable_nvidia | bool
+  when: molecule_test != true and base_system_enable_nvidia | bool
 
 - name: Swap ffmpeg-free with ffmpeg
-  ansible.builtin.dnf:
-    name: ffmpeg
-    state: present
-    swap:
-      - ffmpeg-free
-    allowerasing: true
+  ansible.builtin.command:
+    cmd: "dnf swap -y ffmpeg-free ffmpeg --allowerasing"
+  changed_when: false
+
+- name: Remove PackageKit-gstreamer-plugin package
+  ansible.builtin.dnf5:
+    name: PackageKit-gstreamer-plugin
+    state: absent
+  changed_when: false
 
 - name: Upgrade multimedia group (using dnf4 if available)
   ansible.builtin.command:
-    cmd: "dnf4 group upgrade multimedia"
-  when: ansible_check_mode == false
-  register: dnf4_upgrade_result
-  failed_when: dnf4_upgrade_result.rc != 0
-  changed_when: dnf4_upgrade_result.rc != 0
-
-- name: Upgrade multimedia group (using dnf if dnf4 not found or check mode)
-  ansible.builtin.dnf:
-    name: "@multimedia"
-    state: latest
-    setopt:
-      install_weak_deps: "False"
-    exclude:
-      - PackageKit-gstreamer-plugin
-  when: ansible_check_mode or "'dnf4' not in ansible_facts.packages"
+    cmd: "dnf4 group install -y multimedia"
+  changed_when: false
 
 - name: Install sound-and-video group
-  ansible.builtin.dnf:
-    name: "@sound-and-video"
-    state: present
+  ansible.builtin.command:
+    cmd: "dnf group install -y sound-and-video"
+  changed_when: false
 
 - name: Install ffmpeg-libs, libva, and libva-utils
-  ansible.builtin.dnf:
+  ansible.builtin.dnf5:
     name:
       - ffmpeg-libs
       - libva
@@ -131,14 +115,11 @@
     state: present
 
 - name: Swap libva-intel-media-driver with intel-media-driver
-  ansible.builtin.dnf:
-    name: intel-media-driver
-    state: present
-    swap:
-      - libva-intel-media-driver
-    allowerasing: true
+  ansible.builtin.command:
+    cmd: "dnf swap -y libva-intel-media-driver intel-media-driver --allowerasing"
+  changed_when: false
 
 - name: Install libva-intel-driver
-  ansible.builtin.dnf:
+  ansible.builtin.dnf5:
     name: libva-intel-driver
     state: present

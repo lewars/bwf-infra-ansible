@@ -15,6 +15,15 @@
 - name: Include package management tasks
   ansible.builtin.import_tasks: packages.yml
 
+- name: Include desktop tasks
+  ansible.builtin.import_tasks: desktop.yml
+
+- name: Include nvidia tasks
+  ansible.builtin.import_tasks: nvidia.yml
+
+- name: Include firmware tasks
+  ansible.builtin.import_tasks: firmware.yml
+
 - name: Include time synchronization tasks
   ansible.builtin.import_tasks: time.yml
 

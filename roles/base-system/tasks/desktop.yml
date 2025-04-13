@@ -1,0 +1,161 @@
+---
+- name: Install dbus-daemon required by dconf
+  ansible.builtin.dnf:
+    name: dbus-daemon
+    state: present
+  when: base_system_enable_gnome_sound | bool
+
+- name: Disable GNOME overlay key (Super key)
+  ansible.builtin.dconf:
+    key: "/org/gnome/mutter/overlay-key"
+    value: "''"
+    state: present
+  become: false
+  when: base_system_enable_gnome_sound | bool
+
+- name: Set message tray keybinding to Shift+Super+M
+  ansible.builtin.dconf:
+    key: "/org/gnome/shell/keybindings/toggle-message-tray"
+    value: "['<Shift><Super>m']"
+    state: present
+  become: false
+
+- name: Disable GNOME system sounds and beeps
+  ansible.builtin.dconf:
+   key: "/org/gnome/desktop/sound/event-sounds"
+   value: "false"
+   state: present
+  become: false
+  when: base_system_enable_gnome_sound | bool
+
+- name: Disable GNOME input feedback sounds
+  ansible.builtin.dconf:
+    key: "/org/gnome/desktop/sound/input-feedback-sounds"
+    value: "false"
+    state: present
+  become: false
+  when: base_system_enable_gnome_sound | bool
+
+- name: Disable bell in GNOME Terminal
+  ansible.builtin.dconf:
+    key: "/org/gnome/terminal/legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9/audible-bell"
+    value: "false"
+    state: present
+  become: false
+  when: base_system_enable_gnome_sound | bool
+
+- name: Disable PC speaker beep
+  lineinfile:
+    path: /etc/inputrc
+    line: "set bell-style none"
+    state: present
+    create: yes
+  become: false
+  when: base_system_enable_speaker_sound | bool
+
+- name: Disable PC speaker beep system-wide via modprobe config
+  lineinfile:
+    path: /etc/modprobe.d/nobeep.conf
+    line: "blacklist pcspkr"
+    state: present
+    create: yes
+  become: false
+  when: base_system_enable_speaker_sound | bool
+
+- name: Install Proton VPN
+  block:
+   - name: Download Proton VPN repository configuration package
+     get_url:
+       url: "https://repo.protonvpn.com/fedora-{{ ansible_distribution_version }}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm"
+       dest: "/tmp/protonvpn-stable-release-1.0.3-1.noarch.rpm"
+       mode: '0644'
+
+   - name: Verify package checksum (optional)
+     command: sha256sum --check
+     args:
+       stdin: "75f900440aba2be221fb14046a4d89d6ccdbd43dcbf1509cb2d996acd138c5ab /tmp/protonvpn-stable-release-1.0.3-1.noarch.rpm"
+     register: checksum_result
+     failed_when: "'OK' not in checksum_result.stdout"
+     changed_when: false
+
+   - name: Install Proton VPN repository
+     dnf:
+       name: "/tmp/protonvpn-stable-release-1.0.3-1.noarch.rpm"
+       state: present
+       disable_gpg_check: true
+
+   - name: Refresh DNF cache
+     dnf:
+       update_cache: yes
+
+   - name: Install Proton VPN application
+     dnf:
+       name: proton-vpn-gnome-desktop
+       state: present
+
+   - name: Install system tray icon dependencies
+     dnf:
+       name:
+         - libappindicator-gtk3
+         - gnome-shell-extension-appindicator
+         - gnome-extensions-app
+       state: present
+
+   - name: Enable AppIndicator extension
+     command: gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com
+     become_user: "{{ ansible_user_id }}"
+     register: extension_result
+     failed_when: false
+     changed_when: false
+     # changed_when: extension_result.rc == 0
+     ignore_errors: true
+  become: false
+  when: base_system_enable_proton_vpn | bool
+
+- name: Install 1Password
+  block:
+    - name: Import 1Password GPG key
+      rpm_key:
+        key: https://downloads.1password.com/linux/keys/1password.asc
+        state: present
+
+    - name: Add 1Password repository
+      copy:
+        dest: /etc/yum.repos.d/1password.repo
+        content: |
+          [1password]
+          name=1Password Stable Channel
+          baseurl=https://downloads.1password.com/linux/rpm/stable/$basearch
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=1
+          gpgkey=https://downloads.1password.com/linux/keys/1password.asc
+      changed_when: false
+
+    - name: Install 1Password package
+      dnf:
+        name: 1password
+        state: present
+        update_cache: yes
+  become: false
+  when: base_system_enable_1password | bool
+
+- name: Install Brave Browser Beta
+  when: base_system_enable_brave_browser_beta | bool
+  block:
+    - name: Check if Brave Browser Repo Config is present
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/brave-browser-beta.repo
+      register: brave_browser_repo_config
+
+
+    - name: Add Brave Browser Beta repository
+      command: dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-beta.s3.brave.com/brave-browser-beta.repo
+      when: not brave_browser_repo_config.stat.exists
+
+    - name: Install Brave Browser Beta package
+      dnf:
+        name: brave-browser-beta
+        state: present
+        update_cache: yes
+

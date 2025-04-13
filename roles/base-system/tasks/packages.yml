@@ -1,6 +1,6 @@
 ---
 - name: Install RPM Fusion repositories
-  ansible.builtin.dnf:
+  ansible.builtin.dnf5:
     name:
       - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
       - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
@@ -22,13 +22,19 @@
     - { option: 'deltarpm', value: 'true' }
 
 - name: Install required packages
-  ansible.builtin.dnf:
+  ansible.builtin.dnf5:
     name: "{{ base_system_packages }}"
     state: present
     update_cache: true
 
-- name: Install COPR tools
-  ansible.builtin.dnf:
+- name: Enable fedora-cisco-openh264 repository
+  ansible.builtin.command:
+    cmd: dnf config-manager setopt fedora-cisco-openh264.enabled=1
+  changed_when: false
+  when: base_system_enable_fedora_cisco_openh264 | bool
+
+- name: Install DNF plugin core
+  ansible.builtin.dnf5:
     name: 'dnf-plugins-core'
     state: present
 
@@ -39,31 +45,109 @@
   changed_when: false
   when: base_system_enable_keyd_copr | bool
 
-- name: Install keyd package
-  ansible.builtin.dnf:
+- name: Install keyd COPR package
+  ansible.builtin.dnf5:
     name: keyd
     state: present
   when: base_system_enable_keyd_copr | bool
 
-  # Enable keyd service
+
+- name: Make git directory
+  ansible.builtin.file:
+    path: /home/{{ ansible_user }}/git
+    state: directory
+    mode: 755
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: base_system_enable_keyd_src | bool
+
+- name: Clone keyd configuration repository
+  ansible.builtin.git:
+    repo: https://github.com/rvaiya/keyd.git
+    dest: /home/{{ ansible_user }}/git/keyd
+    version: "{{ base_system_keyd_version }}"
+  become: false
+  when: base_system_enable_keyd_src | bool
+
+- name: Build keyd code
+  ansible.builtin.command:
+    cmd: make
+    chdir: /home/{{ ansible_user }}/git/keyd
+  become: false
+  changed_when: false
+  when: base_system_enable_keyd_src | bool
+
+- name: Install built keyd
+  ansible.builtin.command:
+    cmd: make install
+    chdir: /home/{{ ansible_user }}/git/keyd
+  changed_when: false
+  when: base_system_enable_keyd_src | bool
+
+- name: Copy keyd configuration
+  ansible.builtin.copy:
+    dest: /etc/keyd/default.conf
+    content: |
+      [ids]
+
+      *
+      [main]
+    owner: root
+    group: root
+    mode: '0644'
+  when: base_system_enable_keyd_src | bool or base_system_enable_keyd_copr | bool
+
 - name: Enabled keyd service
   ansible.builtin.systemd:
     name: keyd
     enabled: true
     state: started
   changed_when: false
-  when: base_system_enable_keyd_copr | bool
+  when: base_system_enable_keyd_copr | bool or base_system_enable_keyd_src | bool
+
+- name: Install Flatpak
+  ansible.builtin.dnf5:
+    name: flatpak
+    state: present
+  when: base_system_enable_flathub | bool
 
 - name: Install Flathub repository
   ansible.builtin.command:
-    cmd: flatpak remote-add --if-not-exists --subset=verified_floss flathub-verified https://flathub.org/repo/flathub.flatpakrepo
-    register: flatpak_result
-    changed_when: false
+    cmd: flatpak remote-add --if-not-exists --subset=verified_floss flathub-verified https://dl.flathub.org/repo/flathub.flatpakrepo
+  register: flatpak_result
+  changed_when: false
   when: base_system_enable_flathub | bool
 
 - name: Update entire system
-  ansible.builtin.dnf:
+  ansible.builtin.dnf5:
     name: '*'
     state: latest
     update_cache: true
   when: base_system_update | bool
+
+- name: Install dnf5-plugins
+  ansible.builtin.dnf:
+    name: dnf5-plugins
+    state: present
+  when: base_system_enable_flathub | bool
+
+- name: Check if GitHub CLI repository exists
+  ansible.builtin.stat:
+    path: /etc/yum.repos.d/gh-cli.repo
+  register: gh_repo_check
+
+- name: Add GitHub CLI repository
+  ansible.builtin.command:
+    cmd: dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+  changed_when: false
+  when:
+    - not gh_repo_check.stat.exists
+    - base_system_enable_flathub | bool
+
+- name: Install GitHub CLI
+  ansible.builtin.dnf:
+    name: gh
+    state: present
+    enablerepo: gh-cli
+    update_cache: yes
+  when: base_system_enable_flathub | bool

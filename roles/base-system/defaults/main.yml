@@ -1,8 +1,18 @@
 ---
 base_system_enable_rpm_fusion: true
-base_system_enable_keyd_copr: true
+base_system_enable_keyd_copr: false
+base_system_enable_keyd_src: true
+base_system_keyd_version: v2.5.0
 base_system_update: true
 base_system_enable_flathub: true
+base_system_enable_gnome_sound: true
+base_system_enable_speaker_sound: true
+base_system_enable_proton_vpn: true
+base_system_enable_1password: true
+base_system_enable_brave_browser_beta: true
+base_system_enable_gh_cli: true
+base_system_enable_fedora_cisco_openh264: true
+base_system_enable_nvidia: true
 
 base_system_packages:
   - dnf-utils
@@ -15,6 +25,12 @@ base_system_packages:
   - plocate
   - tmux
   - fwupd
+
+base_desktop_packages:
+  - brave
+  - emacs
+  - terminator
+  - ulauncher
 
 base_system_hostname: "{{ lookup('env', 'HOSTNAME_PREFIX') }}"
 base_system_domain: "{{ lookup('env', 'DOMAIN')}}"

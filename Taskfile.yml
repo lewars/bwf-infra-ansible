@@ -20,7 +20,7 @@ tasks:
     aliases: [venv]
     deps: [install-pip]
     status:
-      - test -d {{.VENV_PATH}}
+      - test -e {{.VENV_PATH}}/bin/activate
     cmds:
       - "{{.PYTHON}} -m venv {{.VENV_PATH}}"
 
