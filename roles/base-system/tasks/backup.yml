@@ -1,0 +1,103 @@
+---
+- name: Install Borg backup packages
+  ansible.builtin.dnf:
+    name:
+      - borgbackup
+      - vorta
+    state: present
+  when: base_system_enable_backup | bool
+
+- name: Create backup directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: wheel
+    mode: '0750'
+  loop:
+    - "{{ base_system_borg_prefix_repo }}"
+    - /etc/backup
+  when: base_system_enable_backup | bool
+
+- name: Copy backup script
+  ansible.builtin.copy:
+    src: backup.sh
+    dest: /usr/local/bin/backup.sh
+    owner: root
+    group: root
+    mode: '0755'
+  when: base_system_enable_backup | bool
+
+- name: Create backup exclusion file
+  ansible.builtin.template:
+    src: backup.exclude.j2
+    dest: /etc/backup/exclude.txt
+    owner: root
+    group: root
+    mode: '0644'
+  when: base_system_enable_backup | bool
+
+- name: Create main backup configuration file
+  ansible.builtin.template:
+    src: backup.conf.j2
+    dest: /etc/backup/backup.conf
+    owner: root
+    group: root
+    mode: '0640'
+  when: base_system_enable_backup | bool
+
+- name: Include encrypted variables
+  ansible.builtin.include_vars:
+    file: vault.yml
+  when: base_system_enable_backup | bool
+
+- name: Create passphrase file
+  ansible.builtin.copy:
+    content: "{{ base_system_borg_encrypted_passphrase }}"
+    dest: /etc/backup/passphrase
+    owner: root
+    group: root
+    mode: '0600'
+  when: base_system_enable_backup | bool
+
+- name: Set permissions on passphrase file
+  ansible.builtin.file:
+    path: /etc/backup/passphrase
+    owner: root
+    group: root
+    mode: '0600'
+  when: base_system_enable_backup | bool
+
+- name: Install backup systemd service
+  ansible.builtin.template:
+    src: backup.service.j2
+    dest: /etc/systemd/system/backup.service
+    owner: root
+    group: root
+    mode: '0644'
+  when: base_system_enable_backup | bool
+  register: backup_service
+
+- name: Install backup systemd timer
+  ansible.builtin.template:
+    src: backup.timer.j2
+    dest: /etc/systemd/system/backup.timer
+    owner: root
+    group: root
+    mode: '0644'
+  when: base_system_enable_backup | bool
+  register: backup_timer
+
+- name: Reload systemd on configuration change
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when:
+    - base_system_enable_backup | bool
+    - backup_service.changed or backup_timer.changed
+
+- name: Enable and start backup timer
+  ansible.builtin.systemd:
+    name: backup.timer
+    enabled: true
+    state: started
+  when: base_system_enable_backup | bool

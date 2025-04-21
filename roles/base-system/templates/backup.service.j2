@@ -1,0 +1,16 @@
+[Unit]
+Description=Borg Backup Service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/backup.sh
+User=root
+Group=root
+CPUSchedulingPolicy=idle
+Nice={{ base_system_backup_nice_value }}
+Restart=no
+TimeoutStartSec={{ base_system_backup_timeout_start }}
+
+[Install]
+WantedBy=multi-user.target

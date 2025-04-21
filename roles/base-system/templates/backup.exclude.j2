@@ -1,0 +1,50 @@
+# Backup exclusion patterns
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+# Standard system and temporary files to exclude from backups
+
+# User directories
+/home/*/tmp
+/home/*/.local/share
+/home/*/.gradle
+/home/*/Downloads
+/home/*/dev
+/home/*/.config/libvirt
+/home/*/build
+/home/*/bin/Typora-linux-x64
+/home/*/.ansible/tmp
+/home/*/Android
+/home/*/.android
+/home/*/.cache
+/home/*/git/admin-/tripwire
+/home/*/git/admin-/08162024
+/home/*/git/learn/terraform
+/home/*/git/learn-tf/yt-tut
+
+# Specific applications and browser data
+*.mozilla
+*.zoom
+
+# File types to exclude
+*.iso
+*~
+*-CHECKSUM
+*.safetensors
+*.venv
+*/venv/*
+*/venv-*
+*.dbus
+*.fedora-wor.draft.txt
+*.bak
+*.osh-update
+*.terraform.d
+*.vagrant.d
+*.Xauthority
+*.java
+*.parallel
+*.ansible_async
+*.qcow2
+*.rpm
+
+# Add any custom exclusions below this line
+{{ base_system_backup_custom_excludes | default('') }}

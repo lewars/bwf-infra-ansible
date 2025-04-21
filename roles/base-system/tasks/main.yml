@@ -47,3 +47,6 @@
 
 - name: Include network configuration tasks
   ansible.builtin.import_tasks: network.yml
+
+- name: Include backup tasks
+  ansible.builtin.import_tasks: backup.yml

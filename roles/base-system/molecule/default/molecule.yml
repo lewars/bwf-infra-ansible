@@ -25,6 +25,7 @@ provisioner:
   config_options:
     defaults:
       remote_tmp: /tmp/.ansible-${USER}/tmp
+      vault_password_file: ~/.vault-pass
   env:
     ANSIBLE_ROLES_PATH: ../../../
     DEFAULT_USER: molecule-user
@@ -41,6 +42,7 @@ provisioner:
         base_system_update: false
         base_system_enable_flathub: true
         molecule_test: true
+        is_workstation: true
 verifier:
   name: testinfra
   directory: ../tests

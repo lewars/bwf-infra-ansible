@@ -1,0 +1,6 @@
+---
+# Print not implemented yet
+- name: Print message that the nvidia server setup is not implemented yet
+  debug:
+    msg: "NVIDIA server setup is not implemented yet."
+  when: is_server == false

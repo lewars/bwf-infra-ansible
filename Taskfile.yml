@@ -105,13 +105,13 @@ tasks:
     desc: Deploy the Ansible configuration to the workstation
     # deps: [install-deps, validate]
     cmds:
-      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml -i inventory/{{.ENV}}/hosts.yml
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml -i inventory/{{.ENV}}/hosts.yml --ask-vault-pass
 
   deploy-server:
     desc: Deploy the Ansible configuration to server
     # deps: [install-deps, validate]
     cmds:
-      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/server.yml -i inventory/{{.ENV}}/hosts.yml
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/server.yml -i inventory/{{.ENV}}/hosts.yml --ask-vault-pass
 
   clean:
     desc: Clean up generated files and environments

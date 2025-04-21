@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Borg Backup Service hourly
+After=network.target
+
+[Timer]
+OnCalendar={{ base_system_backup_timer_interval | default('hourly') }}
+RandomizedDelaySec={{ base_system_backup_random_delay | default('15m') }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

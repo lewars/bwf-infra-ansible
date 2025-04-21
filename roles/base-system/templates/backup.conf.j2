@@ -1,0 +1,29 @@
+# Backup configuration file
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+# Paths to backup (space-separated)
+BACKUP_PATHS={{ base_system_backup_paths | default('/home') }}
+
+# Internal Borg create options (used by interactive backup)
+BORG_INT_CREATE_OPTS="--compression {{ base_system_borg_compression | default('zlib,6') }}
+                       --stats
+                       --progress
+                       --exclude-from /etc/backup/exclude.txt"
+
+# Borg create options (used by automated backup)
+BORG_CREATE_OPTS="--compression {{ base_system_borg_compression | default('zlib,6') }}
+                    --stats
+                    --exclude-from /etc/backup/exclude.txt"
+
+# Borg prune options (retention policy)
+BORG_PRUNE_OPTS="--keep-hourly={{ base_system_keep_hourly | default('24') }}
+                    --keep-daily={{ base_system_keep_daily | default('7') }}
+                    --keep-weekly={{ base_system_keep_weekly | default('4') }}
+                    --keep-monthly={{ base_system_keep_monthly | default('3') }}
+                    --stats"
+
+# Repository location
+BORG_REPO_PREFIX={{ base_system_borg_prefix_repo | default('/var/local/backup/repository') }}
+
+# Passphrase file location
+BORG_PASSPHRASE_FILE={{ base_system_borg_passphrase_file | default('/etc/backup/passphrase') }}
