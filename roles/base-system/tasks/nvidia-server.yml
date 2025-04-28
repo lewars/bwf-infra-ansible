@@ -1,6 +1,175 @@
 ---
-# Print not implemented yet
-- name: Print message that the nvidia server setup is not implemented yet
-  debug:
-    msg: "NVIDIA server setup is not implemented yet."
-  when: is_server == false
+- name: Install Development Tools
+  ansible.builtin.dnf5:
+    name: "@Development Tools"
+    state: present
+  when: base_system_enable_nvidia | bool
+
+# Create Ansible code to add NVIDIA CUDA repositories for Fedora 41
+- name: Add NVIDIA CUDA repository
+  ansible.builtin.dnf_config_manager:
+    name: "cuda-fedora{{ ansible_distribution_major_version }}"
+    repo: "https://developer.download.nvidia.com/compute/cuda/repos/fedora{{ ansible_distribution_major_version }}/x86_64/cuda-fedora{{ ansible_distribution_major_version }}.repo"
+    state: enabled
+  when:
+    - base_system_enable_nvidia | bool
+
+- name: Install NVIDIA and CUDA packages using the CUDA meta-package
+  ansible.builtin.dnf5:
+    name:
+      - cuda
+      - cude-devel
+      - cude-samples
+      - cude-gdb
+      - nvidia-persistenced
+      - vulkan
+    state: present
+  when: base_system_enable_nvidia | bool
+
+- name: Wait for NVIDIA driver installation
+  when: base_system_enable_nvidia | bool
+  block:
+    - name: Wait for compilation to start
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: Check for active compilation processes
+      ansible.builtin.shell: |
+        pgrep -i "{{ process_names_regex }}" && exit 1 || exit 0
+      register: compilation_check
+      until: compilation_check.rc == 0
+      retries: "{{ nretries }}"
+      delay: "{{ check_interval }}"
+      changed_when: false
+      failed_when: compilation_check.rc != 0
+      ignore_errors: true
+      vars:
+        check_interval: 10
+        wait_timeout: 300
+        nretries: "{{ wait_timeout // check_interval }}"
+        process_names_regex: '(gcc|make|rpmbuild)'
+
+    - name: Initiate reboot after NVIDIA module is present
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        msg: "Rebooting system after NVIDIA driver installation"
+      when: molecule_test != true
+
+    - name: Wait for the system to become reachable again
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+      when: molecule_test != true
+
+    - name: Verify NVIDIA driver is loaded after reboot
+      ansible.builtin.command:
+        cmd: lsmod | grep nvidia
+      register: nvidia_module_check
+      changed_when: false
+      when: molecule_test != true
+
+    - name: Display NVIDIA module status after reboot
+      ansible.builtin.debug:
+        var: nvidia_module_check.stdout_lines
+      when: molecule_test != true and nvidia_module_check.stdout_lines
+
+    - name: Display NVIDIA installation completion message
+      ansible.builtin.debug:
+        msg: "NVIDIA driver installation and reboot complete."
+
+- name: Configure system-wide CUDA environment variables
+  ansible.builtin.copy:
+    content: |
+      PATH=/usr/local/cuda/bin:${PATH}
+      LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+    dest: /etc/profile.d/cuda.sh
+    mode: "0644"
+  notify: Reboot system
+  when: base_system_enable_nvidia | bool
+
+- name: Install NVIDIA Fabric Manager
+  ansible.builtin.dnf:
+    name: nvidia-fabric-manager
+    state: present
+  when:
+    - base_system_enable_nvidia | bool
+    - base_system_enable_nvidia_multi_device | bool
+
+- name: Enable nvidia-{suspend,resume,hibernate}
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - nvidia-suspend.service
+    - nvidia-resume.service
+    - nvidia-hibernate.service
+  changed_when: false
+  when: base_system_enable_nvidia | bool
+
+- name: Enable nvidia-persistenced
+  ansible.builtin.systemd:
+    name: nvidia-persistenced
+    enabled: true
+    state: started
+  when: molecule_test != true and base_system_enable_nvidia | bool
+
+- name: Enable nvidia-fabricmanager
+  ansible.builtin.systemd:
+    name: nvidia-fabricmanager
+    enabled: true
+    state: started
+  when:
+    - molecule_test != true and base_system_enable_nvidia | bool
+    - base_system_enable_nvidia_multi_device | bool
+
+- name: Create dcgm-exporter systemd quadlet directory
+  ansible.builtin.file:
+    path: /etc/containers/systemd/
+    state: directory
+    mode: "0755"
+
+- name: Create dcgm-exporter.container systemd quadlet file
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=NVIDIA DCGM Exporter Container
+      Wants=network-online.target
+      After=network-online.target
+
+      [Container]
+      Image=nvidia/dcgm-exporter:latest
+      Ports={{ dcgm_exporter_ports | default([ { 'host_port': 9400, 'container_port': 9400, 'proto': 'tcp' } ]) | flatten }}
+      ReadWritePaths=/var/log/dcgm-exporter
+      User=root
+      Group=root
+      CapAdd=SYS_ADMIN
+      Environment=
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/containers/systemd/dcgm-exporter.container
+    mode: "0644"
+  notify:
+    - Restart dcgm-exporter container
+    - Reload systemd daemon
+
+- name: Create log directory
+  ansible.builtin.file:
+    path: /var/log/dcgm-exporter
+    state: directory
+    mode: "0755"
+    owner: "0"
+    group: "0"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: Reload systemd daemon
+
+- name: Restart dcgm-exporter container
+  ansible.builtin.systemd:
+    name: dcgm-exporter.container
+    state: restarted
+    enabled: true
+  listen: Restart dcgm-exporter container

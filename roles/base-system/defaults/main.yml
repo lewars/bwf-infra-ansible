@@ -13,6 +13,7 @@ base_system_enable_brave_browser_beta: true
 base_system_enable_gh_cli: true
 base_system_enable_fedora_cisco_openh264: true
 base_system_enable_nvidia: true
+base_system_enable_nvidia_multi_device: false
 
 # Backup configuration variables
 base_system_enable_backup: true
