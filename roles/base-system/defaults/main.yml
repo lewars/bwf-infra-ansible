@@ -14,7 +14,6 @@ base_system_enable_gh_cli: true
 base_system_enable_fedora_cisco_openh264: true
 base_system_enable_nvidia: true
 
-
 # Backup configuration variables
 base_system_enable_backup: true
 base_system_backup_paths: "/home"
@@ -30,6 +29,57 @@ base_system_backup_timeout_start: "50m"
 base_system_backup_timer_interval: "hourly"
 base_system_backup_random_delay: "15m"
 
+# Virus Scan configuration variables
+base_system_enable_clamav_clamscan: false
+base_system_enable_clamav_clamonacc: false
+base_system_enable_clamav_freshclam: false
+
+base_system_clamav_scan_on_access: yes
+base_system_clamav_on_access_prevention: no
+base_system_clamav_on_access_disable_ddd: no
+base_system_clamav_on_access_exclude_root_uid: yes
+base_system_clamav_supgroup: "virusgroup"
+
+base_system_clamav_scan_dirs:
+  - /home
+  - /var/tmp
+  - /tmp
+  - /run/user
+  - /mnt
+  - /media
+
+base_system_clamav_test_dbs: "yes"
+base_system_clamav_db_mirror: "database.clamav.net"
+base_system_clamd_tmp_dir: /run/clamd/tmp/
+base_system_clamd_user: clamscan
+base_system_clamd_pid_file: /run/clamd/clamd.pid
+base_system_clamd_limit_nofile: 65535
+base_system_clamd_limit_nproc: 65535
+base_system_clamd_local_socket: /run/clamd/clamd.sock
+base_system_clamd_local_socket_mode: "760"
+base_system_clamd_on_access_include_path: /home
+base_system_clamd_on_access_mount_path: /
+base_system_clamd_max_threads: 13
+base_system_clamd_max_file_size: 4096M
+base_system_clamd_max_file_size_exceeded: log
+base_system_clamd_max_dir_recursion: 20
+base_system_clamd_scan_archive: "yes"
+base_system_clamd_on_access_max_threads: 4
+base_system_clamd_virus_event: /usr/local/sbin/clamv-event.sh
+base_system_clamd_exclude_path_dev: "^/dev/"
+base_system_clamd_exclude_path_proc: "^/proc/"
+base_system_clamd_exclude_path_sys: "^/sys/"
+base_system_clamd_extended_detection_info: "yes"
+base_system_clamscan_on_boot_sec: 5min
+base_system_clamscan_on_calendar: "*-*-* 00,06,12,18:10:00"
+base_system_clamscan_randomized_delay_sec: 10min
+base_system_clamscan_options: "--verbose"
+base_system_clamav_freshclam_conf_path: /etc/freshclam.conf
+base_system_clamd_conf_path: /etc/clamd.d/%i.conf
+base_system_clamav_freshclam_on_calendar: "*-*-* 00,06,12,18:00:00"
+base_system_clamav_freshclam_randomize_delay_sec: 5m
+base_system_clamd_timeout_start_sec: 420
+
 base_system_packages:
   - dnf-utils
   - emacs
@@ -41,6 +91,7 @@ base_system_packages:
   - plocate
   - tmux
   - fwupd
+  - setroubleshoot-server
 
 base_desktop_packages:
   - brave
@@ -72,4 +123,3 @@ base_system_disable_filesystems:
 base_system_sysctl_settings:
   net.ipv4.conf.all.log_martians: 1
   net.ipv4.conf.default.log_martians: 1
-

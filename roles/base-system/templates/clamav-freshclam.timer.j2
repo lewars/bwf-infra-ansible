@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily freshclam database update
+Documentation=man:freshclam(1) https://www.clamav.net/documents/
+
+[Timer]
+OnCalendar={{ base_system_clamav_freshclam_on_calendar }}
+Persistent=true
+RandomizedDelaySec={{ base_system_clamav_freshclam_randomize_delay_sec }}
+
+[Install]
+WantedBy=timers.target

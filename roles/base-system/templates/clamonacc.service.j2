@@ -1,0 +1,14 @@
+[Unit]
+Description=ClamAV On-Access Scanner
+Requires=clamd.service
+After=clamd.service
+# On Fedora 41, this may be called clamd.service
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/clamonacc --foreground --config-file={{ base_system_clamd_conf_path }}
+Restart=on-failure
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

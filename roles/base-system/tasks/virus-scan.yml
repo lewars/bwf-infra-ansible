@@ -1,0 +1,255 @@
+---
+- name: Install ClamAV packages and dependencies
+  ansible.builtin.dnf:
+    name:
+      - acl
+      - clamav
+      - clamd
+      - clamav-data
+      - clamav-freshclam
+      - clamav-lib
+      - clamav-filesystem
+    state: present
+
+- name: Set ACLs on directories
+  ansible.posix.acl:
+    path: "{{ item }}"
+    default: true
+    entity: "{{ base_system_clamav_supgroup }}"
+    etype: "group"
+    permissions: "r"
+    state: present
+    recurse: true
+  loop: "{{ base_system_clamav_scan_dirs }}"
+
+- name: Create freshclam.conf
+  ansible.builtin.template:
+    src: freshclam.conf.j2
+    dest: "{{ base_system_clamav_freshclam_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: base_system_enable_clamav_freshclam | bool
+
+- name: Create clamav-freshclam service drop-in directory
+  file:
+    path: /etc/systemd/system/clamav-freshclam.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: base_system_enable_clamav_freshclam | bool
+
+- name: Create clamav-freshclam service override file
+  template:
+    src: clamav-freshclam-override.conf.j2
+    dest: /etc/systemd/system/clamav-freshclam.service.d/override.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: base_system_enable_clamav_freshclam | bool
+
+- name: Create clamav-freshclam.timer from template
+  ansible.builtin.template:
+    src: clamav-freshclam.timer.j2
+    dest: /etc/systemd/system/clamav-freshclam.timer
+    owner: root
+    group: root
+    mode: "0644"
+  when: base_system_enable_clamav_freshclam | bool
+
+- name: Remove scan.conf
+  ansible.legacy.file:
+    dest: /etc/clamd.d/scan.conf
+    state: absent
+
+- name: Create clamd.conf from template
+  ansible.builtin.template:
+    src: clamd.conf.j2
+    dest: /etc/clamd.d/clamd.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Make sure /run/clamd and sub directories exists
+  ansible.builtin.file:
+    dest: "{{ item }}"
+    state: directory
+    owner: "{{ base_system_clamd_user }}"
+    group: "{{ base_system_clamd_user }}"
+    mode: "0750"
+  when: base_system_enable_clamav_clamscan | bool
+  loop:
+    - /run/clamd
+    - /run/clamd/tmp
+
+- name: Install policycoreutils-python for SELinux management
+  ansible.builtin.package:
+    name: policycoreutils-python-utils
+    state: present
+
+- name: Create custom SELinux policy module
+  ansible.builtin.copy:
+    dest: /tmp/clamav_run.te
+    content: |
+      module clamav_run 1.0;
+
+      require {
+        type antivirus_t;
+        type var_run_t;
+        class sock_file { create unlink setattr getattr read write };
+        class dir { add_name remove_name write search create rmdir };
+        class file { create open read write getattr unlink };
+      }
+
+      #============= antivirus_t ==============
+      # Allow full socket operations
+      allow antivirus_t var_run_t:sock_file { create unlink setattr getattr read write };
+      # Allow directory operations
+      allow antivirus_t var_run_t:dir { add_name remove_name write search create rmdir };
+      # Allow file operations
+      allow antivirus_t var_run_t:file { create open read write getattr unlink };
+  when: base_system_enable_clamav_clamscan
+  changed_when: false
+
+- name: Compile and install custom SELinux policy
+  ansible.builtin.shell: |
+    cd /tmp
+    checkmodule -M -m -o clamav_run.mod clamav_run.te
+    semodule_package -o clamav_run.pp -m clamav_run.mod
+    semodule -i clamav_run.pp
+  args:
+    creates: /var/lib/selinux/targeted/active/modules/400/clamav_run
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Set SELinux file context for clamd directory
+  community.general.sefcontext:
+    target: '/run/clamd(/.*)?'
+    setype: antivirus_var_run_t
+    state: present
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Apply new SELinux file context
+  ansible.builtin.command: restorecon -Rv /run/clamd
+  changed_when: false
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Restart ClamAV service
+  ansible.builtin.systemd:
+    name: "clamd@clamd.service"
+    state: restarted
+    enabled: yes
+  failed_when: false # TODO(alistair): failing intermittently for no reason; fix this
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Create clamd service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/clamd@clamd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Create clamd service override file
+  ansible.builtin.template:
+    src: clamd-override.conf.j2
+    dest: /etc/systemd/system/clamd@clamd.service.d/override.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Create clamonacc service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/clamonacc.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: base_system_enable_clamav_clamonacc | bool
+
+- name: Create clamonacc service override file from template
+  ansible.builtin.template:
+    src: clamonacc-override.conf.j2
+    dest: /etc/systemd/system/clamonacc.service.d/override.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: base_system_enable_clamav_clamonacc | bool
+
+- name: Create clamscan.timer from template
+  ansible.builtin.template:
+    src: clamscan.timer.j2
+    dest: /etc/systemd/system/clamscan.timer
+    owner: root
+    group: root
+    mode: "0644"
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Create clamscan service from template
+  ansible.builtin.template:
+    src: clamscan.service.j2
+    dest: /etc/systemd/system/clamscan.service
+    owner: root
+    group: root
+    mode: "0644"
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Copy clamav-event.sh script
+  ansible.builtin.copy:
+    src: clamav-event.sh
+    dest: /usr/local/bin/clamav-event.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Enable freshclam.service
+  ansible.builtin.systemd_service:
+    name: clamav-freshclam.service
+    enabled: true
+    daemon_reload: true
+    state: started
+  when: base_system_enable_clamav_freshclam | bool
+  changed_when: false
+
+- name: Enable freshclam.timer
+  ansible.builtin.systemd_service:
+    name: clamav-freshclam.timer
+    enabled: true
+    daemon_reload: true
+    state: started
+  when: base_system_enable_clamav_freshclam | bool
+
+- name: Enable and start clamd.service
+  ansible.builtin.systemd_service:
+    name: clamd@clamd.service
+    enabled: true
+    state: started
+  changed_when: false
+  when: base_system_enable_clamav_clamscan | bool
+
+- name: Enable and start clamonacc.service
+  ansible.builtin.systemd_service:
+    name: clamonacc.service
+    enabled: true
+    daemon_reload: true
+    state: started
+  when: base_system_enable_clamav_clamonacc | bool
+  changed_when: false
+
+- name: Enable clamscan.service
+  ansible.builtin.systemd_service:
+    name: clamscan.service
+    enabled: true
+    state: started
+  when: base_system_enable_clamav_clamscan | bool
+  changed_when: false
+
+- name: Enable and start clamscan.timer
+  ansible.builtin.systemd_service:
+    name: clamscan.timer
+    enabled: true
+    daemon_reload: true
+    state: started
+  when: base_system_enable_clamav_clamscan | bool
