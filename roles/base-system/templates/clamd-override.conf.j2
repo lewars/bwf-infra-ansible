@@ -1,0 +1,11 @@
+[Service]
+User = {{ base_system_clamd_user }}
+Group = {{ base_system_clamd_user }}
+PIDFile = {{ base_system_clamd_pid_file }}
+LimitNOFILE = {{ base_system_clamd_limit_nofile }}
+LimitNPROC = {{ base_system_clamd_limit_nproc }}
+PrivateTmp = true
+Restart = on-failure
+RuntimeDirectory = clamd
+RuntimeDirectoryMode = 750
+TimeoutStartSec = {{ base_system_clamd_timeout_start_sec }}

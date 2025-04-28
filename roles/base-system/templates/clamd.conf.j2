@@ -1,0 +1,22 @@
+# Ansible managed
+
+TemporaryDirectory {{ base_system_clamd_tmp_dir }}
+User {{ base_system_clamd_user }}
+LocalSocket {{ base_system_clamd_local_socket }}
+LocalSocketMode {{ base_system_clamd_local_socket_mode }}
+MaxThreads {{ base_system_clamd_max_threads }}
+MaxFileSize {{ base_system_clamd_max_file_size }}
+MaxDirectoryRecursion {{ base_system_clamd_max_dir_recursion }}
+ScanArchive {{ base_system_clamd_scan_archive }}
+OnAccessIncludePath {{ base_system_clamd_on_access_include_path }}
+ExcludePath {{ base_system_clamd_exclude_path_dev }}
+ExcludePath {{ base_system_clamd_exclude_path_proc }}
+ExcludePath {{ base_system_clamd_exclude_path_sys }}
+OnAccessExcludeRootUID {{ base_system_clamav_on_access_exclude_root_uid }}
+OnAccessExcludeUname {{ base_system_clamd_user }}
+OnAccessPrevention {{ base_system_clamav_on_access_prevention }}
+OnAccessDisableDDD {{ base_system_clamav_on_access_disable_ddd }}
+OnAccessMaxThreads {{ base_system_clamd_on_access_max_threads }}
+VirusEvent {{ base_system_clamd_virus_event }}
+ExtendedDetectionInfo {{ base_system_clamd_extended_detection_info }}
+PidFile {{ base_system_clamd_pid_file }}

@@ -1,0 +1,7 @@
+[Unit]
+Description=ClamAV On-Demand Scanner Service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/clamscan {{ base_system_clamscan_options }}
+

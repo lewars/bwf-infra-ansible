@@ -1,0 +1,11 @@
+[Unit]
+Description=ClamAV On-Demand Scan Timer
+
+[Timer]
+OnBootSec={{ base_system_clamscan_on_boot_sec }}
+OnCalendar={{ base_system_clamscan_on_calendar }}
+RandomizedDelaySec={{ base_system_clamscan_randomized_delay_sec }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

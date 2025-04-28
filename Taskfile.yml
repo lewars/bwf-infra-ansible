@@ -66,10 +66,11 @@ tasks:
   test:base-system:verify:
     desc: Run molecule tests for base-system up to verify stage
     cmds:
-      - . {{.VENV_PATH}}/bin/activate && \
-        cd roles/base-system && \
-        molecule create && \
-        molecule converge && \
+      - |
+        . {{.VENV_PATH}}/bin/activate &&
+        cd roles/base-system &&
+        molecule create &&
+        molecule converge &&
         molecule verify
 
   test:all:destroy:
