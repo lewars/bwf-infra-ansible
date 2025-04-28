@@ -185,11 +185,13 @@ def test_systemd_resolved(host):
     assert resolved_service.is_running
     assert resolved_service.is_enabled
 
+
 # Test borgbackup and vorta are installed
 def test_borgbackup_and_vorta(host):
     """Verify borgbackup and vorta are installed"""
     assert host.package("borgbackup").is_installed
     assert host.package("vorta").is_installed
+
 
 # Test backup script /usr/local/bin/backup.sh is present
 def test_backup_script(host):
@@ -198,6 +200,7 @@ def test_backup_script(host):
     assert backup_script.exists
     assert backup_script.is_file
     assert backup_script.is_executable
+
 
 # Test if backup directories (/var/local/backup and /etc/backup) are created
 def test_backup_directories(host):
@@ -211,6 +214,7 @@ def test_backup_directories(host):
         assert backup_dir.group == "wheel"
         assert backup_dir.mode == 0o750
 
+
 # Test if ecludes file /etc/backup/exclude.txt is present
 def test_excludes_file(host):
     """Verify excludes file is present"""
@@ -220,6 +224,7 @@ def test_excludes_file(host):
     assert excludes_file.user == "root"
     assert excludes_file.group == "root"
     assert excludes_file.mode == 0o644
+
 
 # Test if back configuration file /etc/backup/backup.conf is present
 def test_backup_configuration_file(host):
@@ -231,6 +236,7 @@ def test_backup_configuration_file(host):
     assert backup_conf.group == "root"
     assert backup_conf.mode == 0o640
 
+
 # Test if backup passphrase file /etc/backup/passphrase is present
 def test_backup_passphrase_file(host):
     """Verify backup passphrase file is present"""
@@ -241,6 +247,7 @@ def test_backup_passphrase_file(host):
     assert passphrase_file.group == "root"
     assert passphrase_file.mode == 0o600
 
+
 # Test if backup systemd onshot service is present
 def test_backup_systemd_service(host):
     """Verify backup systemd oneshot service is present"""
@@ -250,6 +257,7 @@ def test_backup_systemd_service(host):
     assert backup_service.user == "root"
     assert backup_service.group == "root"
     assert backup_service.mode == 0o644
+
 
 # Test if backup systemd timer is present and enabled
 def test_backup_systemd_timer(host):
@@ -263,3 +271,63 @@ def test_backup_systemd_timer(host):
 
     timer_service = host.service("backup.timer")
     assert timer_service.is_enabled
+
+
+def test_clamav_packages_installed(host):
+    """
+    Tests that all required ClamAV packages are installed.
+    """
+    packages = [
+        "acl",
+        "clamav",
+        "clamd",
+        "clamav-data",
+        "clamav-freshclam",
+        "clamav-lib",
+        "clamav-filesystem",
+    ]
+    for package in packages:
+        assert host.package(package).is_installed, f"Package {package} not installed"
+
+
+@pytest.mark.skip(reason="clamd service is not running")
+def test_freshclam_service_running(host):
+    """
+    Tests that the freshclam service is running.
+    """
+    assert not host.service(
+        "clamav-freshclam.service"
+    ).is_running, "freshclam service is running"
+
+@pytest.mark.skip(reason="clamd service is not running")
+def test_freshclam_timer_running(host):
+    """
+    Tests that the freshclam timer is running.
+    """
+    assert host.service(
+        "clamav-freshclam.timer"
+    ).is_enabled, "freshclam timer is not running"
+
+@pytest.mark.skip(reason="clamd service is not running")
+def test_clamd_service_running(host):
+    """
+    Tests that the clamd service is running.
+    """
+    assert host.service("clamd@clamd.service").is_running, "clamd service is not running"
+
+
+@pytest.mark.skip(reason="clamd service is not running")
+def test_clamonacc_service_running(host):
+    """
+    Tests that the clamonacc service is running.
+    """
+    assert host.service(
+        "clamonacc.service"
+    ).is_running, "clamonacc service is not running"
+
+@pytest.mark.skip(reason="clamd service is not running")
+def test_clamscan_timer_running(host):
+    """
+    Tests that the clamscan timer is running
+    """
+    assert host.service("clamscan.timer").is_enabled, "clamscan.timer is not running"

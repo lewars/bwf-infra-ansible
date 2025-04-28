@@ -48,5 +48,20 @@
 - name: Include network configuration tasks
   ansible.builtin.import_tasks: network.yml
 
+- name: Include nvidia tasks for workstation
+  ansible.builtin.import_tasks: nvidia-workstation.yml
+  when: is_workstation | default(false)
+
+- name: Include nvidia tasks for server
+  ansible.builtin.import_tasks: nvidia-server.yml
+  when: is_server | default(false)
+
+- name: Include desktop tasks
+  ansible.builtin.import_tasks: desktop.yml
+  when: is_workstation | default(false)
+
 - name: Include backup tasks
   ansible.builtin.import_tasks: backup.yml
+
+- name: Include virus-scan tasks
+  ansible.builtin.import_tasks: virus-scan.yml
