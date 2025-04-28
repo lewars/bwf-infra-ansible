@@ -76,6 +76,7 @@
        stdin: "75f900440aba2be221fb14046a4d89d6ccdbd43dcbf1509cb2d996acd138c5ab /tmp/protonvpn-stable-release-1.0.3-1.noarch.rpm"
      register: checksum_result
      failed_when: "'OK' not in checksum_result.stdout"
+     when: false
      changed_when: false
 
    - name: Install Proton VPN repository

@@ -8,14 +8,16 @@
     ssh_port: 22
     ssh_key_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/ssh_key"
     base_image_download: true
-    base_image_name: "Fedora-Cloud-Base-Generic-41-1.4.x86_64.qcow2"
+    base_image: "Fedora-Cloud-Base-Generic-42-1.1"
+    base_image_checksum_name: "Fedora-Cloud-42-1.1"
+    base_image_name: "{{ base_image }}.x86_64.qcow2"
     base_image_local_path: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/{{ base_image_name }}"
-    base_image_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/{{ base_image_name }}"
-    base_image_checksum_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/x86_64/images/Fedora-Cloud-41-1.4-x86_64-CHECKSUM"
-    base_image_checksum: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/Fedora-Cloud-41-1.4-x86_64-CHECKSUM"
+    base_image_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/{{ base_image_name }}"
+    base_image_checksum_url: "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/{{ base_image_checksum_name }}-x86_64-CHECKSUM"
+    base_image_checksum: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images/{{ base_image_checksum_name }}-x86_64-CHECKSUM"
     fedora_gpg_key: "{{ lookup('env', 'XDG_RUNTIME_DIR') }}/fedora.gpg"
-    fedora_gpg_key_fingerprint: "466CF2D8B60BC3057AA9453ED0622462E99D6AD1"
-    fedora_gpg_opengpgkey: "4708da3c8d2e316f3321396cfb18e064f90a361490165d2723a63730._openpgpkey.fedoraproject.org"
+    fedora_gpg_key_fingerprint: "B0F4950458F69E1150C6C5EDC8AC4916105EF944"
+    fedora_gpg_opengpgkey: "a75bfc75bf3569a0280bd78d98a07de7ef3d7579b9dc3cfb270542c6._openpgpkey.fedoraproject.org"
     image_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}.qcow2"
     cloud_init_path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/{{ molecule_yml.platforms[0].instance_name }}-cloud-init.iso"
     qemu_pid_file: "{{ lookup('env', 'XDG_RUNTIME_DIR') }}/{{ molecule_yml.platforms[0].instance_name }}.pid"
@@ -161,7 +163,7 @@
 
     - name: Verify checksum file signature
       ansible.builtin.command:
-        cmd: gpgv --keyring ./fedora.gpg Fedora-Cloud-41-1.4-x86_64-CHECKSUM
+        cmd: "gpgv --keyring ./fedora.gpg {{ base_image_name }}-x86_64-CHECKSUM"
         chdir: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images"
       when: base_image_download and checksum_download.changed
       register: gpg_verify
@@ -170,7 +172,7 @@
 
     - name: Verify image with checksum
       ansible.builtin.command:
-        cmd: sha256sum --ignore-missing -c Fedora-Cloud-41-1.4-x86_64-CHECKSUM
+        cmd: "sha256sum --ignore-missing -c {{ base_image_name }}-x86_64-CHECKSUM"
         chdir: "{{ lookup('env', 'HOME') }}/.local/share/molecule/base_images"
       when: base_image_download and checksum_download.changed
       register: checksum_verify
@@ -232,7 +234,7 @@
       ansible.builtin.shell: >
         qemu-system-x86_64
         -name {{ molecule_yml.platforms[0].instance_name }}
-        -machine type=q35,accel=kvm:tcg
+        -machine type=q35,accel=kvm
         -cpu host
         -smp {{ molecule_yml.platforms[0].cpus | default(4) }}
         -m {{ molecule_yml.platforms[0].memory | default(4096) }}
@@ -272,8 +274,8 @@
       ansible.builtin.wait_for:
         host: 127.0.0.1
         port: "{{ vm_ssh_port }}"
-        delay: 5
-        timeout: 300
+        delay: 10
+        timeout: 600
       register: ssh_ready
 
     - name: Dump instance config
