@@ -99,6 +99,9 @@ base_desktop_packages:
   - terminator
   - ulauncher
 
+base_system_groups:
+  - "@virtualization"
+
 base_system_hostname: "{{ lookup('env', 'HOSTNAME_PREFIX') }}"
 base_system_domain: "{{ lookup('env', 'DOMAIN')}}"
 

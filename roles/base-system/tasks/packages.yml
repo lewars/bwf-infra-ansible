@@ -27,6 +27,12 @@
     state: present
     update_cache: true
 
+- name: Install group packages
+  ansible.builtin.dnf:
+    name: "{{ base_system_groups }}"
+    state: present
+    update_cache: true
+
 - name: Enable fedora-cisco-openh264 repository
   ansible.builtin.command:
     cmd: dnf config-manager setopt fedora-cisco-openh264.enabled=1
