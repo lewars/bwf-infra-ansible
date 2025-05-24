@@ -157,3 +157,6 @@
     enablerepo: gh-cli
     update_cache: yes
   when: base_system_enable_flathub | bool
+
+# TODO install AWS CLI. See: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+
