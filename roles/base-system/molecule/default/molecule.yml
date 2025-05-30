@@ -12,8 +12,8 @@ platforms:
     instance_name: bwf-test-${MOLECULE_SCENARIO_NAME:-default}
     groups:
       - molecule
-    memory: 4096
-    cpus: 4
+    memory: 8192
+    cpus: 6
     connection: ssh
     ansible_connection: ssh
     ansible_user: molecule

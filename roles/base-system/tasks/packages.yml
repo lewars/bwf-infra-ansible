@@ -6,7 +6,9 @@
       - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
     disable_gpg_check: true
     state: present
-  when: base_system_enable_rpm_fusion | bool
+  when:
+    - base_system_enable_rpm_fusion | bool
+    - is_workstation | default(false)
 
 - name: Configure DNF for faster downloads
   community.general.ini_file:
@@ -37,26 +39,33 @@
   ansible.builtin.command:
     cmd: dnf config-manager setopt fedora-cisco-openh264.enabled=1
   changed_when: false
-  when: base_system_enable_fedora_cisco_openh264 | bool
+  when:
+    - base_system_enable_fedora_cisco_openh264 | bool
+    - is_workstation | default(false)
 
 - name: Install DNF plugin core
   ansible.builtin.dnf5:
     name: 'dnf-plugins-core'
     state: present
+  when:
+    - is_workstation | default(false)
 
 - name: Enable keyd COPR repository
   ansible.builtin.command:
     cmd: dnf copr enable -y alternateved/keyd
   register: copr_result
   changed_when: false
-  when: base_system_enable_keyd_copr | bool
+  when:
+    - base_system_enable_keyd_copr | bool
+    - is_workstation | default(false)
 
 - name: Install keyd COPR package
   ansible.builtin.dnf5:
     name: keyd
     state: present
-  when: base_system_enable_keyd_copr | bool
-
+  when:
+    - base_system_enable_keyd_copr | bool
+    - is_workstation | default(false)
 
 - name: Make git directory
   ansible.builtin.file:
@@ -73,7 +82,9 @@
     dest: /home/{{ ansible_user }}/git/keyd
     version: "{{ base_system_keyd_version }}"
   become: false
-  when: base_system_enable_keyd_src | bool
+  when:
+    - base_system_enable_keyd_src | bool
+    - is_workstation | default(false)
 
 - name: Build keyd code
   ansible.builtin.command:
@@ -81,14 +92,18 @@
     chdir: /home/{{ ansible_user }}/git/keyd
   become: false
   changed_when: false
-  when: base_system_enable_keyd_src | bool
+  when:
+    - base_system_enable_keyd_src | bool
+    - is_workstation | default(false)
 
 - name: Install built keyd
   ansible.builtin.command:
     cmd: make install
     chdir: /home/{{ ansible_user }}/git/keyd
   changed_when: false
-  when: base_system_enable_keyd_src | bool
+  when:
+    - base_system_enable_keyd_src | bool
+    - is_workstation | default(false)
 
 - name: Copy keyd configuration
   ansible.builtin.copy:
@@ -101,7 +116,9 @@
     owner: root
     group: root
     mode: '0644'
-  when: base_system_enable_keyd_src | bool or base_system_enable_keyd_copr | bool
+  when:
+    - base_system_enable_keyd_src | bool or base_system_enable_keyd_copr | bool
+    - is_workstation | default(false)
 
 - name: Enabled keyd service
   ansible.builtin.systemd:
@@ -109,7 +126,9 @@
     enabled: true
     state: started
   changed_when: false
-  when: base_system_enable_keyd_copr | bool or base_system_enable_keyd_src | bool
+  when:
+    - base_system_enable_keyd_copr | bool or base_system_enable_keyd_src | bool
+    - is_workstation | default(false)
 
 - name: Install Flatpak
   ansible.builtin.dnf5:
@@ -135,7 +154,9 @@
   ansible.builtin.dnf:
     name: dnf5-plugins
     state: present
-  when: base_system_enable_flathub | bool
+  when:
+    - base_system_enable_flathub | bool
+    - is_workstation | default(false)
 
 - name: Check if GitHub CLI repository exists
   ansible.builtin.stat:

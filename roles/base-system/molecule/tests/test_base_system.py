@@ -1,6 +1,7 @@
 import pytest
 import os
-
+import requests
+import socket
 
 # Test package management functionality
 def test_rpm_fusion_repos(host):
@@ -331,3 +332,51 @@ def test_clamscan_timer_running(host):
     Tests that the clamscan timer is running
     """
     assert host.service("clamscan.timer").is_enabled, "clamscan.timer is not running"
+
+import pytest
+import requests
+import socket
+
+def test_dcgm_exporter_running(host):
+    """
+    Verify that the dcgm-exporter service is running and enabled.
+    """
+    service = host.service("dcgm-exporter.container")
+    assert service.is_running
+    assert service.is_enabled
+
+
+def test_dcgm_exporter_port_listening(host):
+    """
+    Verify that dcgm-exporter is listening on the expected port.
+    """
+    socket_check = host.socket("tcp://0.0.0.0:9400")
+    assert socket_check.is_listening
+
+
+def test_dcgm_exporter_metrics_endpoint(host):
+    """
+    Verify that the /metrics endpoint is accessible and returns data.
+    """
+    ip_address = host.ansible("ansible.builtin.setup")["ansible_facts"]["ansible_default_ipv4"]["address"]
+
+    url = f"http://{ip_address}:9400/metrics"
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        assert "DCGM_FI_DEV_GPU_UTIL" in response.text
+    except requests.exceptions.RequestException as e:
+        pytest.fail(f"Failed to connect to dcgm-exporter: {e}")
+    except AssertionError:
+        pytest.fail(f"/metrics endpoint did not return expected metrics.  URL: {url}")
+
+
+def test_dcgm_exporter_log_directory(host):
+    """
+    Verify that the log directory exists.
+    """
+    log_dir = host.file("/var/log/dcgm-exporter")
+    assert log_dir.is_directory
+    assert log_dir.user == "root"
+    assert log_dir.group == "root"
+    assert log_dir.mode == 0o755
