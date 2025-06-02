@@ -21,6 +21,7 @@
     state: present
     recurse: true
   loop: "{{ base_system_clamav_scan_dirs }}"
+  when: base_system_enable_clamav_clamscan | bool
 
 - name: Create freshclam.conf
   ansible.builtin.template:

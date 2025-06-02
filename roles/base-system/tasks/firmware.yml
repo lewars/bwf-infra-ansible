@@ -8,6 +8,6 @@
 - name: Install firmware
   ansible.builtin.command:
     cmd: fwupdmgr update -y
-    register: fwupdmgr_update
-    changed_when: false
+  register: fwupdmgr_update
+  changed_when: false
   when: base_system_update | bool

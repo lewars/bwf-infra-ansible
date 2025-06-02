@@ -106,7 +106,7 @@ tasks:
     desc: Deploy the Ansible configuration to the workstation
     # deps: [install-deps, validate]
     cmds:
-      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml -i inventory/{{.ENV}}/hosts.yml --ask-vault-pass
+      - . {{.VENV_PATH}}/bin/activate && ansible-playbook playbooks/workstation.yml -i inventory/{{.ENV}}/hosts.yml # --ask-vault-pass
 
   deploy-server:
     desc: Deploy the Ansible configuration to server
@@ -121,7 +121,7 @@ tasks:
         if [ -d "{{.VENV_PATH}}" ]; then
           . {{.VENV_PATH}}/bin/activate
           for role in roles/*/; do
-            if [ -d "${role}molecule" ]; then
+            if [[ -d "${role}molecule" ]] && command molecule 2>&1 >/dev/null; then
               cd $role
               molecule destroy
               cd -

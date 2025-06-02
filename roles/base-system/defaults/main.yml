@@ -7,15 +7,15 @@ base_system_update: true
 base_system_enable_flathub: true
 base_system_enable_gnome_sound: true
 base_system_enable_speaker_sound: true
-base_system_enable_proton_vpn: true
-base_system_enable_1password: true
+base_system_enable_proton_vpn: false
+base_system_enable_1password: false
 base_system_enable_brave_browser_beta: true
 base_system_enable_gh_cli: true
 base_system_enable_fedora_cisco_openh264: true
-base_system_enable_nvidia: true
+base_system_enable_nvidia: false
 
 # Backup configuration variables
-base_system_enable_backup: true
+base_system_enable_backup: false
 base_system_backup_paths: "/home"
 base_system_borg_compression: "zlib,6"
 base_system_keep_hourly: "24"

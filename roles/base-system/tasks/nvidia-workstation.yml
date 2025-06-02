@@ -43,24 +43,24 @@
       ansible.builtin.reboot:
         reboot_timeout: 300
         msg: "Rebooting system after NVIDIA driver installation"
-      when: molecule_test != true
+      when: false
 
     - name: Wait for the system to become reachable again
       ansible.builtin.wait_for_connection:
         timeout: 300
-      when: molecule_test != true
+      when: false
 
     - name: Verify NVIDIA driver is loaded after reboot
       ansible.builtin.command:
         cmd: lsmod | grep nvidia
       register: nvidia_module_check
       changed_when: false
-      when: molecule_test != true
+      when: false
 
     - name: Display NVIDIA module status after reboot
       ansible.builtin.debug:
         var: nvidia_module_check.stdout_lines
-      when: molecule_test != true and nvidia_module_check.stdout_lines
+      when: false
 
     - name: Display NVIDIA installation completion message
       ansible.builtin.debug:
@@ -83,7 +83,7 @@
     name: nvidia-persistenced
     enabled: true
     state: started
-  when: molecule_test != true and base_system_enable_nvidia | bool
+  when: false
 
 - name: Swap ffmpeg-free with ffmpeg
   ansible.builtin.command:
