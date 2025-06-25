@@ -81,18 +81,19 @@ base_system_clamav_freshclam_randomize_delay_sec: 5m
 base_system_clamd_timeout_start_sec: 420
 
 base_system_packages:
+  - bind-utils
   - dnf-utils
   - emacs
-  - htop
-  - rsync
-  - net-tools
-  - bind-utils
-  - traceroute
-  - plocate
-  - tmux
   - fwupd
-  - setroubleshoot-server
+  - htop
+  - net-tools
   - nodejs-npm
+  - plocate
+  - python3-psutil
+  - rsync
+  - setroubleshoot-server
+  - tmux
+  - traceroute
 
 base_desktop_packages:
   - brave

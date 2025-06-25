@@ -168,9 +168,6 @@
     state: present
     executable: pip3
   become: true
-  tags:
-    - semgrep
-    - tools
 
 # TODO install AWS CLI. See: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 
