@@ -5,11 +5,11 @@
 
   tasks:
     - name: Set molecule project directory
-      set_fact:
+      ansible.builtin.set_fact:
         role_dir: "{{ lookup('env', 'ANSIBLE_ROLES_PATH') }}"
 
     - name: Show debug info
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Using role path: {{ role_dir }}"
 

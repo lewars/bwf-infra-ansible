@@ -73,7 +73,7 @@
       when: base_image_download
 
     - name: Check if base image is present
-      stat:
+      ansible.builtin.stat:
         path: "{{ base_image_local_path }}"
       register: base_image_file
 
@@ -85,7 +85,7 @@
       when: not base_image_file.stat.exists
 
     - name: Check if base image checksum is present
-      stat:
+      ansible.builtin.stat:
         path: "{{ base_image_checksum }}"
       register: base_image_file_checksum
 
@@ -107,6 +107,8 @@
       check_mode: false
 
     - name: Download and verify Fedora GPG key
+      become: true
+      when: gpg_key_check.rc != 0
       block:
         - name: Download Fedora GPG key
           ansible.builtin.get_url:
@@ -156,8 +158,6 @@
           changed_when: import_result.rc == 0
           failed_when: import_result.rc != 0
           when: fedora_gpg_key_fingerprint in gpg_key_info.stdout
-      become: true
-      when: gpg_key_check.rc != 0
 
     - name: Verify checksum file signature
       ansible.builtin.command:
@@ -184,7 +184,7 @@
         mode: "0755"
 
     - name: Check for existing molecule instance disk
-      ansible.builtin.stat:
+      ansible.builtin.ansible.builtin.stat:
         path: "{{ image_path }}"
       register: instance_disk
 
@@ -211,6 +211,7 @@
 
     - name: Prepare cloud-init user-data file
       ansible.builtin.copy:
+        mode: 0644
         dest: "{{ temp_dir.path }}/user-data"
         content: |
           #cloud-config

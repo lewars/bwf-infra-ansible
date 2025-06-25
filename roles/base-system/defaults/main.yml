@@ -34,10 +34,10 @@ base_system_enable_clamav_clamscan: false
 base_system_enable_clamav_clamonacc: false
 base_system_enable_clamav_freshclam: false
 
-base_system_clamav_scan_on_access: yes
-base_system_clamav_on_access_prevention: no
-base_system_clamav_on_access_disable_ddd: no
-base_system_clamav_on_access_exclude_root_uid: yes
+base_system_clamav_scan_on_access: true
+base_system_clamav_on_access_prevention: false
+base_system_clamav_on_access_disable_ddd: false
+base_system_clamav_on_access_exclude_root_uid: true
 base_system_clamav_supgroup: "virusgroup"
 
 base_system_clamav_scan_dirs:
@@ -103,7 +103,7 @@ base_system_groups:
   - "@virtualization"
 
 base_system_hostname: "{{ lookup('env', 'HOSTNAME_PREFIX') }}"
-base_system_domain: "{{ lookup('env', 'DOMAIN')}}"
+base_system_domain: "{{ lookup('env', 'DOMAIN') }}"
 
 base_system_chrony_servers:
   - "192.168.10.1 iburst"
