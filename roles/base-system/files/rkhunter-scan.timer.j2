@@ -1,0 +1,10 @@
+[Unit]
+Description=Run rkhunter scan periodically
+
+[Timer]
+OnCalendar={{ base_system_rkhunter_scan_interval }}
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

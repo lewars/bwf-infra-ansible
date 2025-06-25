@@ -55,13 +55,13 @@ tasks:
       - |
         . {{.VENV_PATH}}/bin/activate &&
         cd roles/base-system &&
-        molecule destroy
+        molecule destroy -- "{{.CLI_ARGS}}"
 
   test:base-system:
     desc: Run molecule tests for base-system role
     deps: [validate]
     cmds:
-      - . {{.VENV_PATH}}/bin/activate && cd roles/base-system && molecule test
+      - . {{.VENV_PATH}}/bin/activate && cd roles/base-system && molecule test -- "{{ .CLI_ARGS }}"
 
   test:base-system:verify:
     desc: Run molecule tests for base-system up to verify stage
@@ -69,9 +69,9 @@ tasks:
       - |
         . {{.VENV_PATH}}/bin/activate &&
         cd roles/base-system &&
-        molecule create &&
-        molecule converge &&
-        molecule verify
+        molecule create -- "{{.CLI_ARGS}}" &&
+        molecule converge -- "{{.CLI_ARGS}}" &&
+        molecule verify -- "{{.CLI_ARGS}}"
 
   test:all:destroy:
     desc: Destroy all molecule test instances for all roles
@@ -81,7 +81,7 @@ tasks:
         for role in roles/*/; do
           if [ -d "${role}molecule" ]; then
             cd $role
-            molecule destroy
+            molecule destroy -- "{{.CLI_ARGS}}"
             cd -
           fi
         done
@@ -96,7 +96,7 @@ tasks:
         for role in roles/*/; do
           if [ -d "${role}molecule" ]; then
             cd $role
-            molecule test || errors=$((errors+1))
+            molecule test  -- "{{.CLI_ARGS}}" || errors=$((errors+1))
             cd -
           fi
         done
@@ -123,7 +123,7 @@ tasks:
           for role in roles/*/; do
             if [[ -d "${role}molecule" ]] && command molecule 2>&1 >/dev/null; then
               cd $role
-              molecule destroy
+              molecule destroy -- "{{.CLI_ARGS}}"
               cd -
             fi
           done

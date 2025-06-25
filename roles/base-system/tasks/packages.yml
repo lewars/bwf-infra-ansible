@@ -162,5 +162,15 @@
     update_cache: yes
   when: base_system_enable_flathub | bool
 
+- name: Install Semgrep using pip
+  ansible.builtin.pip:
+    name: semgrep
+    state: present
+    executable: pip3
+  become: true
+  tags:
+    - semgrep
+    - tools
+
 # TODO install AWS CLI. See: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 

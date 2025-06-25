@@ -92,6 +92,7 @@ base_system_packages:
   - tmux
   - fwupd
   - setroubleshoot-server
+  - nodejs-npm
 
 base_desktop_packages:
   - brave
@@ -126,3 +127,9 @@ base_system_disable_filesystems:
 base_system_sysctl_settings:
   net.ipv4.conf.all.log_martians: 1
   net.ipv4.conf.default.log_martians: 1
+
+base_system_install_rkhunter: true
+base_system_install_chkrootkit: true
+base_system_rkhunter_initial_run: true
+base_system_rkhunter_scan_interval: "*-*-* 00/3:00:00"
+base_system_chkrootkit_scan_interval: "*-*-* 00/3:30:00"

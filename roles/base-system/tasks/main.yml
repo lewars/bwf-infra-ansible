@@ -65,3 +65,6 @@
 
 - name: Include virus-scan tasks
   ansible.builtin.import_tasks: virus-scan.yml
+
+- name: Include security tasks
+  ansible.builtin.import_tasks: security.yml

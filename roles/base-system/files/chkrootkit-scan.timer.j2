@@ -1,0 +1,10 @@
+[Unit]
+Description=Run chkrootkit scan periodically
+
+[Timer]
+OnCalendar={{ base_system_chkrootkit_scan_interval }}
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
