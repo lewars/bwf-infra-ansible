@@ -36,8 +36,8 @@
   when: base_system_install_chkrootkit
 
 - name: Create rkhunter scan systemd service unit
-  ansible.builtin.template:
-    src: rkhunter-scan.service.j2
+  ansible.builtin.file:
+    src: rkhunter-scan.service
     dest: /etc/systemd/system/rkhunter-scan.service
     owner: root
     group: root
@@ -54,8 +54,8 @@
   notify: Reload systemd
 
 - name: Create chkrootkit scan systemd service unit
-  ansible.builtin.template:
-    src: chkrootkit-scan.service.j2
+  ansible.builtin.file:
+    src: chkrootkit-scan.service
     dest: /etc/systemd/system/chkrootkit-scan.service
     owner: root
     group: root
