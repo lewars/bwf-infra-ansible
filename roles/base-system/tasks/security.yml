@@ -88,7 +88,3 @@
     state: started
     enabled: true
   when: base_system_install_chkrootkit
-
-- name: Reload systemd
-  ansible.builtin.systemd:
-    daemon_reload: true
