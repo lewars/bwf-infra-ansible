@@ -1,0 +1,7 @@
+[Unit]
+Description=Run chkrootkit security scan
+Documentation=man:chkrootkit
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "/usr/sbin/chkrootkit > /var/log/chkrootkit/chkrootkit_scan_$(date +%%Y-%%m-%%d).log"

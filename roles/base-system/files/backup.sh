@@ -3,6 +3,7 @@
 
 # Exit on error
 set -e
+set -x
 
 # Load configuration
 CONFIG_FILE="/etc/backup/backup.conf"

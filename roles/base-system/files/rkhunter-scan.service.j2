@@ -1,0 +1,7 @@
+[Unit]
+Description=Run rkhunter security scan
+Documentation=man:rkhunter
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rkhunter --checkall --skip-keypress --report-warnings-only

@@ -20,31 +20,44 @@
 /home/*/git/admin-/08162024
 /home/*/git/learn/terraform
 /home/*/git/learn-tf/yt-tut
+/home/*/.gvfs
+
+~/.mozilla/firefox/*.default*/cache*
+~/.config/google-chrome/Default/Application Cache
+~/.config/google-chrome/Default/Service Worker
+~/.var/app/*/cache
 
 # Specific applications and browser data
-*.mozilla
-*.zoom
+**/*.mozilla
+**/*.zoom
+
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/target
 
 # File types to exclude
-*.iso
-*~
-*-CHECKSUM
-*.safetensors
-*.venv
-*/venv/*
-*/venv-*
-*.dbus
-*.fedora-wor.draft.txt
-*.bak
-*.osh-update
-*.terraform.d
-*.vagrant.d
-*.Xauthority
-*.java
-*.parallel
-*.ansible_async
-*.qcow2
-*.rpm
+**/*.iso
+**/*~
+**/*-CHECKSUM
+**/*.safetensors
+**/*.venv
+**/*.venv-
+**/*.dbus
+**/*.fedora-wor.draft.txt
+**/*.bak
+**/*.osh-update
+**/*.terraform.d
+**/*.vagrant.d
+**/*.Xauthority
+**/*.java
+**/*.parallel
+**/*.ansible_async
+**/*.qcow2
+**/.img
+**/*.vdi
+**/*.vmdk
+**/*.rpm
 
 # Add any custom exclusions below this line
 {{ base_system_backup_custom_excludes | default('') }}

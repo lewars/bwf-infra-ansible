@@ -1,0 +1,93 @@
+- name: Install rootkit scanners
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - rkhunter
+    - chkrootkit
+  when:
+    - (item == 'rkhunter' and base_system_install_rkhunter) or
+      (item == 'chkrootkit' and base_system_install_chkrootkit)
+
+- name: Perform initial rkhunter setup
+  when: base_system_rkhunter_initial_run
+  block:
+    - name: Update rkhunter definitions
+      ansible.builtin.command:
+        cmd: rkhunter --update
+      register: rkhunter_update
+      changed_when: "'No updates found' not in rkhunter_update.stdout"
+      failed_when: rkhunter_update.rc > 1 # rkhunter can exit 1 on warnings
+
+    - name: Update rkhunter file properties database
+      ansible.builtin.command:
+        cmd: rkhunter --propupd
+      register: rkhunter_propupd
+      changed_when: rkhunter_propupd.rc == 0
+
+- name: Create chkrootkit log directory
+  ansible.builtin.file:
+    path: /var/log/chkrootkit
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+  when: base_system_install_chkrootkit
+
+- name: Create rkhunter scan systemd service unit
+  ansible.builtin.template:
+    src: rkhunter-scan.service.j2
+    dest: /etc/systemd/system/rkhunter-scan.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Create rkhunter scan systemd timer unit
+  ansible.builtin.template:
+    src: rkhunter-scan.timer.j2
+    dest: /etc/systemd/system/rkhunter-scan.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Create chkrootkit scan systemd service unit
+  ansible.builtin.template:
+    src: chkrootkit-scan.service.j2
+    dest: /etc/systemd/system/chkrootkit-scan.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+  when: base_system_rkhunter_initial_install_chkrootkit
+
+- name: Create chkrootkit scan systemd timer unit
+  ansible.builtin.template:
+    src: chkrootkit-scan.timer.j2
+    dest: /etc/systemd/system/chkrootkit-scan.timer
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload systemd
+  when: base_system_rkhunter_initial_run_install_install_chkrootkit
+
+- name: Flush handlers to ensure systemd is reloaded
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start the rkhunter scan timer
+  ansible.builtin.systemd:
+    name: rkhunter-scan.timer
+    state: started
+    enabled: true
+
+- name: Enable and start the chkrootkit scan timer
+  ansible.builtin.systemd:
+    name: chkrootkit-scan.timer
+    state: started
+    enabled: true
+  when: base_system_install_chkrootkit
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
