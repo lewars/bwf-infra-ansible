@@ -11,6 +11,7 @@
 
 - name: Perform initial rkhunter setup
   when: base_system_rkhunter_initial_run
+  become: true
   block:
     - name: Update rkhunter definitions
       ansible.builtin.command:
