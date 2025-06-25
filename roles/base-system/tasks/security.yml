@@ -10,7 +10,7 @@
       (item == 'chkrootkit' and base_system_install_chkrootkit)
 
 - name: Perform initial rkhunter setup
-  when: base_system_rkhunter_initial_run
+  when: base_system_rkhunter_initial_run | bool
   become: true
   block:
     - name: Update rkhunter definitions
@@ -33,7 +33,7 @@
     owner: root
     group: root
     mode: '0750'
-  when: base_system_install_chkrootkit
+  when: base_system_install_chkrootkit | bool
 
 - name: Create rkhunter scan systemd service unit
   ansible.builtin.copy:
@@ -43,6 +43,7 @@
     group: root
     mode: '0644'
   notify: Reload systemd
+  when: base_system_install_rkhunter | bool
 
 - name: Create rkhunter scan systemd timer unit
   ansible.builtin.template:
@@ -52,6 +53,7 @@
     group: root
     mode: '0644'
   notify: Reload systemd
+  when: base_system_install_rkhunter | bool
 
 - name: Create chkrootkit scan systemd service unit
   ansible.builtin.copy:
@@ -61,7 +63,7 @@
     group: root
     mode: '0644'
   notify: Reload systemd
-  when: base_system_rkhunter_initial_install_chkrootkit
+  when: base_system_install_chkrootkit | bool
 
 - name: Create chkrootkit scan systemd timer unit
   ansible.builtin.template:
@@ -71,7 +73,7 @@
     group: root
     mode: '0644'
   notify: Reload systemd
-  when: base_system_rkhunter_initial_run_install_install_chkrootkit
+  when: base_system_install_chkrootkit | bool
 
 - name: Flush handlers to ensure systemd is reloaded
   ansible.builtin.meta: flush_handlers
@@ -81,10 +83,11 @@
     name: rkhunter-scan.timer
     state: started
     enabled: true
+  when: base_system_install_rkhunter | bool
 
 - name: Enable and start the chkrootkit scan timer
   ansible.builtin.systemd:
     name: chkrootkit-scan.timer
     state: started
     enabled: true
-  when: base_system_install_chkrootkit
+  when: base_system_install_chkrootkit | bool
