@@ -3,11 +3,12 @@
   ansible.builtin.group:
     name: "{{ item }}"
     state: present
-  with_items: "{{ base_system_default_user_groups | default([]) }}"
+  with_items: "{{ base_system_default_user_groups | default(['wheel']) }}"
 
 - name: Create default user
   ansible.builtin.user:
     name: "{{ base_system_default_user }}"
+    comment: "{{ base_system_default_user_real_name  }}"
     groups: "{{ base_system_default_user_groups }}"
     append: true
     state: present
@@ -17,7 +18,7 @@
 
 - name: Configure sudo access for default user
   ansible.builtin.lineinfile:
-    path: /etc/sudoers.d/custom
+    path: "/etc/sudoers.d/{{ base_system_default_user }}"
     line: "{{ base_system_default_user }} ALL=(ALL) NOPASSWD: ALL"
     state: present
     create: true
