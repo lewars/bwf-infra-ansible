@@ -29,6 +29,7 @@
 
 - name: Include firmware tasks
   ansible.builtin.import_tasks: firmware.yml
+  when: base_system_firmware_update | default(false)
 
 - name: Include time synchronization tasks
   ansible.builtin.import_tasks: time.yml

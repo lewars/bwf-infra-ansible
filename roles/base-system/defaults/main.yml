@@ -4,6 +4,7 @@ base_system_enable_keyd_copr: false
 base_system_enable_keyd_src: true
 base_system_keyd_version: v2.5.0
 base_system_update: true
+base_system_firmware_update: true
 base_system_enable_flathub: true
 base_system_enable_gnome_sound: true
 base_system_enable_speaker_sound: true
